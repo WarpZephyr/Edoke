@@ -222,6 +222,19 @@ namespace Edoke.IO
         public BinaryStreamWriter(Stream stream) : this(stream, !BitConverter.IsLittleEndian, false) { }
 
         /// <summary>
+        /// Creates a new <see cref="BinaryStreamWriter"/> from the specified options.
+        /// </summary>
+        /// <param name="path">The path to a file to write to.</param>
+        /// <param name="bigEndian">Whether or not to write in big endian.</param>
+        public BinaryStreamWriter(string path, bool bigEndian) : this(File.OpenWrite(path), bigEndian) { }
+
+        /// <summary>
+        /// Creates a new <see cref="BinaryStreamWriter"/> writing a file to the specified path.
+        /// </summary>
+        /// <param name="path">The path to a file to write to.</param>
+        public BinaryStreamWriter(string path) : this(File.OpenWrite(path), !BitConverter.IsLittleEndian) { }
+
+        /// <summary>
         /// Creates a new <see cref="BinaryStreamWriter"/> writing to a new <see cref="MemoryStream"/>.
         /// </summary>
         /// <param name="bigEndian">Whether or not to write in big endian.</param>

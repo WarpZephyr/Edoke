@@ -14,7 +14,7 @@ namespace Edoke.IO
     /// <summary>
     /// A binary reader for <see cref="byte"/> <see cref="Memory{T}"/> supporting endianness.
     /// </summary>
-    public class BinaryMemoryReader
+    public class BinaryMemoryReader : IBinaryReader
     {
         #region Constants
 
@@ -27,6 +27,26 @@ namespace Edoke.IO
         /// The type name for 8-Byte varints.
         /// </summary>
         private const string VarintLongTypeName = "Varint64";
+
+        /// <summary>
+        /// Generic string formatting.
+        /// </summary>
+        private const string GenericFormat = "{0}";
+
+        /// <summary>
+        /// The string formatting for booleans.
+        /// </summary>
+        private const string BooleanFormat = GenericFormat;
+
+        /// <summary>
+        /// The string formatting for whole numbers.
+        /// </summary>
+        private const string WholeNumberFormat = "0x{0:X}";
+
+        /// <summary>
+        /// The string formatting for decimal numbers.
+        /// </summary>
+        private const string DecimalFormat = GenericFormat;
 
         #endregion
 
@@ -238,7 +258,7 @@ namespace Edoke.IO
         /// </summary>
         public void StepIn(int offset)
         {
-            Steps.Push(offset);
+            Steps.Push(Position);
             Position = offset;
         }
 
@@ -516,7 +536,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the value as.</param>
         /// <returns>An <see cref="sbyte"/>.</returns>
         public sbyte AssertSByte(sbyte option)
-            => AssertHelper.Assert(ReadSByte(), nameof(SByte), option);
+            => AssertHelper.Assert(ReadSByte(), nameof(SByte), WholeNumberFormat, option);
 
         /// <summary>
         /// Reads an <see cref="sbyte"/> and throws if it is not one of the specified options.
@@ -524,7 +544,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the value as.</param>
         /// <returns>An <see cref="sbyte"/>.</returns>
         public sbyte AssertSByte(ReadOnlySpan<sbyte> options)
-            => AssertHelper.Assert(ReadSByte(), nameof(SByte), options);
+            => AssertHelper.Assert(ReadSByte(), nameof(SByte), WholeNumberFormat, options);
 
         #endregion
 
@@ -660,7 +680,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the value as.</param>
         /// <returns>A <see cref="byte"/>.</returns>
         public byte AssertByte(byte option)
-            => AssertHelper.Assert(ReadByte(), nameof(Byte), option);
+            => AssertHelper.Assert(ReadByte(), nameof(Byte), WholeNumberFormat, option);
 
         /// <summary>
         /// Reads a <see cref="byte"/> and throws if it is not one of the specified options.
@@ -668,7 +688,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the value as.</param>
         /// <returns>A <see cref="byte"/>.</returns>
         public byte AssertByte(ReadOnlySpan<byte> options)
-            => AssertHelper.Assert(ReadByte(), nameof(Byte), options);
+            => AssertHelper.Assert(ReadByte(), nameof(Byte), WholeNumberFormat, options);
 
         #endregion
 
@@ -741,7 +761,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the value as.</param>
         /// <returns>A <see cref="short"/>.</returns>
         public short AssertInt16(short option)
-            => AssertHelper.Assert(ReadInt16(), nameof(Int16), option);
+            => AssertHelper.Assert(ReadInt16(), nameof(Int16), WholeNumberFormat, option);
 
         /// <summary>
         /// Reads a <see cref="short"/> and throws if it is not one of the specified options.
@@ -749,7 +769,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the value as.</param>
         /// <returns>A <see cref="short"/>.</returns>
         public short AssertInt16(ReadOnlySpan<short> options)
-            => AssertHelper.Assert(ReadInt16(), nameof(Int16), options);
+            => AssertHelper.Assert(ReadInt16(), nameof(Int16), WholeNumberFormat, options);
 
         #endregion
 
@@ -822,7 +842,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the value as.</param>
         /// <returns>A <see cref="ushort"/>.</returns>
         public ushort AssertUInt16(ushort option)
-            => AssertHelper.Assert(ReadUInt16(), nameof(UInt16), option);
+            => AssertHelper.Assert(ReadUInt16(), nameof(UInt16), WholeNumberFormat, option);
 
         /// <summary>
         /// Reads a <see cref="ushort"/> and throws if it is not one of the specified options.
@@ -830,7 +850,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the value as.</param>
         /// <returns>A <see cref="ushort"/>.</returns>
         public ushort AssertUInt16(ReadOnlySpan<ushort> options)
-            => AssertHelper.Assert(ReadUInt16(), nameof(UInt16), options);
+            => AssertHelper.Assert(ReadUInt16(), nameof(UInt16), WholeNumberFormat, options);
 
         #endregion
 
@@ -903,7 +923,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the value as.</param>
         /// <returns>An <see cref="int"/>.</returns>
         public int AssertInt32(int option)
-            => AssertHelper.Assert(ReadInt32(), nameof(Int32), option);
+            => AssertHelper.Assert(ReadInt32(), nameof(Int32), WholeNumberFormat, option);
 
         /// <summary>
         /// Reads an <see cref="int"/> and throws if it is not one of the specified options.
@@ -911,7 +931,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the value as.</param>
         /// <returns>An <see cref="int"/>.</returns>
         public int AssertInt32(ReadOnlySpan<int> options)
-            => AssertHelper.Assert(ReadInt32(), nameof(Int32), options);
+            => AssertHelper.Assert(ReadInt32(), nameof(Int32), WholeNumberFormat, options);
 
         #endregion
 
@@ -984,7 +1004,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the value as.</param>
         /// <returns>A <see cref="uint"/>.</returns>
         public uint AssertUInt32(uint option)
-            => AssertHelper.Assert(ReadUInt32(), nameof(UInt32), option);
+            => AssertHelper.Assert(ReadUInt32(), nameof(UInt32), WholeNumberFormat, option);
 
         /// <summary>
         /// Reads a <see cref="uint"/> and throws if it is not one of the specified options.
@@ -992,7 +1012,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the value as.</param>
         /// <returns>A <see cref="uint"/>.</returns>
         public uint AssertUInt32(ReadOnlySpan<uint> options)
-            => AssertHelper.Assert(ReadUInt32(), nameof(UInt32), options);
+            => AssertHelper.Assert(ReadUInt32(), nameof(UInt32), WholeNumberFormat, options);
 
         #endregion
 
@@ -1065,7 +1085,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the value as.</param>
         /// <returns>A <see cref="long"/>.</returns>
         public long AssertInt64(long option)
-            => AssertHelper.Assert(ReadInt64(), nameof(Int64), option);
+            => AssertHelper.Assert(ReadInt64(), nameof(Int64), WholeNumberFormat, option);
 
         /// <summary>
         /// Reads a <see cref="long"/> and throws if it is not one of the specified options.
@@ -1073,7 +1093,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the value as.</param>
         /// <returns>A <see cref="long"/>.</returns>
         public long AssertInt64(ReadOnlySpan<long> options)
-            => AssertHelper.Assert(ReadInt64(), nameof(Int64), options);
+            => AssertHelper.Assert(ReadInt64(), nameof(Int64), WholeNumberFormat, options);
 
         #endregion   
 
@@ -1146,7 +1166,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the value as.</param>
         /// <returns>A <see cref="ulong"/>.</returns>
         public ulong AssertUInt64(ulong option)
-            => AssertHelper.Assert(ReadUInt64(), nameof(UInt64), option);
+            => AssertHelper.Assert(ReadUInt64(), nameof(UInt64), WholeNumberFormat, option);
 
         /// <summary>
         /// Reads a <see cref="ulong"/> and throws if it is not one of the specified options.
@@ -1154,7 +1174,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the value as.</param>
         /// <returns>A <see cref="ulong"/>.</returns>
         public ulong AssertUInt64(ReadOnlySpan<ulong> options)
-            => AssertHelper.Assert(ReadUInt64(), nameof(UInt64), options);
+            => AssertHelper.Assert(ReadUInt64(), nameof(UInt64), WholeNumberFormat, options);
 
         #endregion
 
@@ -1227,7 +1247,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the value as.</param>
         /// <returns>A <see cref="Half"/>.</returns>
         public Half AssertHalf(Half option)
-            => AssertHelper.Assert(ReadHalf(), nameof(Half), option);
+            => AssertHelper.Assert(ReadHalf(), nameof(Half), DecimalFormat, option);
 
         /// <summary>
         /// Reads a <see cref="Half"/> and throws if it is not one of the specified options.
@@ -1235,7 +1255,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the value as.</param>
         /// <returns>A <see cref="Half"/>.</returns>
         public Half AssertHalf(ReadOnlySpan<Half> options)
-            => AssertHelper.Assert(ReadHalf(), nameof(Half), options);
+            => AssertHelper.Assert(ReadHalf(), nameof(Half), DecimalFormat, options);
 
         #endregion
 
@@ -1308,7 +1328,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the value as.</param>
         /// <returns>A <see cref="float"/>.</returns>
         public float AssertSingle(float option)
-            => AssertHelper.Assert(ReadSingle(), nameof(Single), option);
+            => AssertHelper.Assert(ReadSingle(), nameof(Single), DecimalFormat, option);
 
         /// <summary>
         /// Reads a <see cref="float"/> and throws if it is not one of the specified options.
@@ -1316,7 +1336,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the value as.</param>
         /// <returns>A <see cref="float"/>.</returns>
         public float AssertSingle(ReadOnlySpan<float> options)
-            => AssertHelper.Assert(ReadSingle(), nameof(Single), options);
+            => AssertHelper.Assert(ReadSingle(), nameof(Single), DecimalFormat, options);
 
         #endregion
 
@@ -1389,7 +1409,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the value as.</param>
         /// <returns>A <see cref="double"/>.</returns>
         public double AssertDouble(double option)
-            => AssertHelper.Assert(ReadDouble(), nameof(Double), option);
+            => AssertHelper.Assert(ReadDouble(), nameof(Double), DecimalFormat, option);
 
         /// <summary>
         /// Reads a <see cref="double"/> and throws if it is not one of the specified options.
@@ -1397,7 +1417,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the value as.</param>
         /// <returns>A <see cref="double"/>.</returns>
         public double AssertDouble(ReadOnlySpan<double> options)
-            => AssertHelper.Assert(ReadDouble(), nameof(Double), options);
+            => AssertHelper.Assert(ReadDouble(), nameof(Double), DecimalFormat, options);
 
         #endregion
 
@@ -1580,7 +1600,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the value as.</param>
         /// <returns>A varint.</returns>
         public long AssertVarint(long option)
-            => AssertHelper.Assert(ReadVarint(), VarintLong ? VarintLongTypeName : VarintIntTypeName, option);
+            => AssertHelper.Assert(ReadVarint(), VarintLong ? VarintLongTypeName : VarintIntTypeName, WholeNumberFormat, option);
 
         /// <summary>
         /// Reads a varint according to <see cref="VarintLong"/> and throws if it is not one of the specified options.
@@ -1588,7 +1608,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the value as.</param>
         /// <returns>A varint.</returns>
         public long AssertVarint(ReadOnlySpan<long> options)
-            => AssertHelper.Assert(ReadVarint(), VarintLong ? VarintLongTypeName : VarintIntTypeName, options);
+            => AssertHelper.Assert(ReadVarint(), VarintLong ? VarintLongTypeName : VarintIntTypeName, WholeNumberFormat, options);
 
         #endregion
 
@@ -1676,7 +1696,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the value as.</param>
         /// <returns>A <see cref="bool"/>.</returns>
         public bool AssertBoolean(bool option)
-            => AssertHelper.Assert(ReadBoolean(), nameof(Boolean), option);
+            => AssertHelper.Assert(ReadBoolean(), nameof(Boolean), BooleanFormat, option);
 
         /// <summary>
         /// Reads a <see cref="bool"/> and throws if it is not one of the specified options.
@@ -1684,7 +1704,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the value as.</param>
         /// <returns>A <see cref="bool"/>.</returns>
         public bool AssertBoolean(ReadOnlySpan<bool> options)
-            => AssertHelper.Assert(ReadBoolean(), nameof(Boolean), options);
+            => AssertHelper.Assert(ReadBoolean(), nameof(Boolean), BooleanFormat, options);
 
         #endregion
 
@@ -2563,7 +2583,6 @@ namespace Edoke.IO
             ValidateLength(length);
             var span = Buffer.Span;
             span = span[BufferOffset..length];
-            span = span[..StringLengthHelper.Strlen(span)];
             BufferOffset += length;
             return span;
         }
@@ -2590,9 +2609,7 @@ namespace Edoke.IO
         private ReadOnlySpan<byte> Get8BitStringSpan(int position, int length)
         {
             ValidateArguments(position, length);
-            var span = Buffer.Span;
-            span = span[position..length];
-            return span[..StringLengthHelper.Strlen(span)];
+            return Buffer.Span[position..length];
         }
 
         #endregion
@@ -2625,7 +2642,6 @@ namespace Edoke.IO
             ValidateLength(length);
             var span = Buffer.Span;
             span = span[BufferOffset..length];
-            span = span[..StringLengthHelper.WStrlen(span)];
             BufferOffset += length;
             return span;
         }
@@ -2652,9 +2668,7 @@ namespace Edoke.IO
         private ReadOnlySpan<byte> Get16BitStringSpan(int position, int length)
         {
             ValidateArguments(position, length);
-            var span = Buffer.Span;
-            span = span[position..length];
-            return span[..StringLengthHelper.WStrlen(span)];
+            return Buffer.Span[position..length];
         }
 
         #endregion
@@ -2694,38 +2708,20 @@ namespace Edoke.IO
             => Encoding.ASCII.GetString(Get8BitStringSpan(position, length));
 
         /// <summary>
-        /// Reads a null-terminated ASCII encoded <see cref="string"/> and throws if it is not the specified option.
+        /// Reads a ASCII encoded <see cref="string"/> and throws if it is not the specified option.
         /// </summary>
         /// <param name="option">The option to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertASCII(string option)
-            => AssertHelper.Assert(ReadASCII(), "ASCII", option);
+            => AssertHelper.Assert(ReadASCII(option.Length), "ASCII", option);
 
         /// <summary>
-        /// Reads a null-terminated ASCII encoded <see cref="string"/> and throws if it is not one of the specified options.
+        /// Reads a ASCII encoded <see cref="string"/> and throws if it is not one of the specified options.
         /// </summary>
         /// <param name="options">The options to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertASCII(ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadASCII(), "ASCII", options);
-
-        /// <summary>
-        /// Reads a ASCII encoded <see cref="string"/> in a fixed-size field and throws if it is not the specified option.
-        /// </summary>
-        /// <param name="length">The byte length of the fixed field.</param>
-        /// <param name="option">The option to assert the <see cref="string"/> as.</param>
-        /// <returns>A <see cref="string"/>.</returns>
-        public string AssertASCII(int length, string option)
-            => AssertHelper.Assert(ReadASCII(length), "ASCII", option);
-
-        /// <summary>
-        /// Reads a ASCII encoded <see cref="string"/> in a fixed-size field and throws if it is not one of the specified options.
-        /// </summary>
-        /// <param name="length">The byte length of the fixed field.</param>
-        /// <param name="options">The options to assert the <see cref="string"/> as.</param>
-        /// <returns>A <see cref="string"/>.</returns>
-        public string AssertASCII(int length, ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadASCII(length), "ASCII", options);
+            => AssertHelper.Assert(ReadASCII(options[0].Length), "ASCII", options);
 
         #endregion
 
@@ -2764,38 +2760,20 @@ namespace Edoke.IO
             => Encoding.UTF8.GetString(Get8BitStringSpan(position, length));
 
         /// <summary>
-        /// Reads a null-terminated UTF8 encoded <see cref="string"/> and throws if it is not the specified option.
+        /// Reads a UTF8 encoded <see cref="string"/> and throws if it is not the specified option.
         /// </summary>
         /// <param name="option">The option to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF8(string option)
-            => AssertHelper.Assert(ReadUTF8(), "UTF8", option);
+            => AssertHelper.Assert(ReadUTF8(option.Length), "UTF8", option);
 
         /// <summary>
-        /// Reads a null-terminated UTF8 encoded <see cref="string"/> and throws if it is not one of the specified options.
+        /// Reads a UTF8 encoded <see cref="string"/> and throws if it is not one of the specified options.
         /// </summary>
         /// <param name="options">The options to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF8(ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadUTF8(), "UTF8", options);
-
-        /// <summary>
-        /// Reads a UTF8 encoded <see cref="string"/> in a fixed-size field and throws if it is not the specified option.
-        /// </summary>
-        /// <param name="length">The byte length of the fixed field.</param>
-        /// <param name="option">The option to assert the <see cref="string"/> as.</param>
-        /// <returns>A <see cref="string"/>.</returns>
-        public string AssertUTF8(int length, string option)
-            => AssertHelper.Assert(ReadUTF8(length), "UTF8", option);
-
-        /// <summary>
-        /// Reads a UTF8 encoded <see cref="string"/> in a fixed-size field and throws if it is not one of the specified options.
-        /// </summary>
-        /// <param name="length">The byte length of the fixed field.</param>
-        /// <param name="options">The options to assert the <see cref="string"/> as.</param>
-        /// <returns>A <see cref="string"/>.</returns>
-        public string AssertUTF8(int length, ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadUTF8(length), "UTF8", options);
+            => AssertHelper.Assert(ReadUTF8(options[0].Length), "UTF8", options);
 
         #endregion
 
@@ -2834,38 +2812,20 @@ namespace Edoke.IO
             => EncodingHelper.ShiftJIS.GetString(Get8BitStringSpan(position, length));
 
         /// <summary>
-        /// Reads a null-terminated ShiftJIS encoded <see cref="string"/> and throws if it is not the specified option.
+        /// Reads a ShiftJIS encoded <see cref="string"/> and throws if it is not the specified option.
         /// </summary>
         /// <param name="option">The option to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertShiftJIS(string option)
-            => AssertHelper.Assert(ReadShiftJIS(), "ShiftJIS", option);
+            => AssertHelper.Assert(ReadShiftJIS(option.Length), "ShiftJIS", option);
 
         /// <summary>
-        /// Reads a null-terminated ShiftJIS encoded <see cref="string"/> and throws if it is not one of the specified options.
+        /// Reads a ShiftJIS encoded <see cref="string"/> and throws if it is not one of the specified options.
         /// </summary>
         /// <param name="options">The options to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertShiftJIS(ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadShiftJIS(), "ShiftJIS", options);
-
-        /// <summary>
-        /// Reads a ShiftJIS encoded <see cref="string"/> in a fixed-size field and throws if it is not the specified option.
-        /// </summary>
-        /// <param name="length">The byte length of the fixed field.</param>
-        /// <param name="option">The option to assert the <see cref="string"/> as.</param>
-        /// <returns>A <see cref="string"/>.</returns>
-        public string AssertShiftJIS(int length, string option)
-            => AssertHelper.Assert(ReadShiftJIS(length), "ShiftJIS", option);
-
-        /// <summary>
-        /// Reads a ShiftJIS encoded <see cref="string"/> in a fixed-size field and throws if it is not one of the specified options.
-        /// </summary>
-        /// <param name="length">The byte length of the fixed field.</param>
-        /// <param name="options">The options to assert the <see cref="string"/> as.</param>
-        /// <returns>A <see cref="string"/>.</returns>
-        public string AssertShiftJIS(int length, ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadShiftJIS(length), "ShiftJIS", options);
+            => AssertHelper.Assert(ReadShiftJIS(options[0].Length), "ShiftJIS", options);
 
         #endregion
 
@@ -2912,38 +2872,20 @@ namespace Edoke.IO
             : EncodingHelper.UTF16LE.GetString(Get16BitStringSpan(position, length));
 
         /// <summary>
-        /// Reads a null-terminated UTF16 encoded <see cref="string"/> and throws if it is not the specified option.
+        /// Reads a UTF16 encoded <see cref="string"/> and throws if it is not the specified option.
         /// </summary>
         /// <param name="option">The option to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF16(string option)
-            => AssertHelper.Assert(ReadUTF16(), "UTF16", option);
+            => AssertHelper.Assert(ReadUTF16(option.Length), "UTF16", option);
 
         /// <summary>
-        /// Reads a null-terminated UTF16 encoded <see cref="string"/> and throws if it is not one of the specified options.
+        /// Reads a UTF16 encoded <see cref="string"/> and throws if it is not one of the specified options.
         /// </summary>
         /// <param name="options">The options to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF16(ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadUTF16(), "UTF16", options);
-
-        /// <summary>
-        /// Reads a UTF16 encoded <see cref="string"/> in a fixed-size field and throws if it is not the specified option.
-        /// </summary>
-        /// <param name="length">The byte length of the fixed field.</param>
-        /// <param name="option">The option to assert the <see cref="string"/> as.</param>
-        /// <returns>A <see cref="string"/>.</returns>
-        public string AssertUTF16(int length, string option)
-            => AssertHelper.Assert(ReadUTF16(length), "UTF16", option);
-
-        /// <summary>
-        /// Reads a UTF16 encoded <see cref="string"/> in a fixed-size field and throws if it is not one of the specified options.
-        /// </summary>
-        /// <param name="length">The byte length of the fixed field.</param>
-        /// <param name="options">The options to assert the <see cref="string"/> as.</param>
-        /// <returns>A <see cref="string"/>.</returns>
-        public string AssertUTF16(int length, ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadUTF16(length), "UTF16", options);
+            => AssertHelper.Assert(ReadUTF16(options[0].Length), "UTF16", options);
 
         #endregion
 
@@ -2982,38 +2924,20 @@ namespace Edoke.IO
             => EncodingHelper.UTF16BE.GetString(Get16BitStringSpan(position, length));
 
         /// <summary>
-        /// Reads a null-terminated big-endian UTF16 encoded <see cref="string"/> and throws if it is not the specified option.
+        /// Reads a big-endian UTF16 encoded <see cref="string"/> and throws if it is not the specified option.
         /// </summary>
         /// <param name="option">The option to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF16BigEndian(string option)
-            => AssertHelper.Assert(ReadUTF16BigEndian(), "UTF16BE", option);
+            => AssertHelper.Assert(ReadUTF16BigEndian(option.Length), "UTF16BE", option);
 
         /// <summary>
-        /// Reads a null-terminated big-endian UTF16 encoded <see cref="string"/> and throws if it is not one of the specified options.
+        /// Reads a big-endian UTF16 encoded <see cref="string"/> and throws if it is not one of the specified options.
         /// </summary>
         /// <param name="options">The options to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF16BigEndian(ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadUTF16BigEndian(), "UTF16BE", options);
-
-        /// <summary>
-        /// Reads a big-endian UTF16 encoded <see cref="string"/> in a fixed-size field and throws if it is not the specified option.
-        /// </summary>
-        /// <param name="length">The byte length of the fixed field.</param>
-        /// <param name="option">The option to assert the <see cref="string"/> as.</param>
-        /// <returns>A <see cref="string"/>.</returns>
-        public string AssertUTF16BigEndian(int length, string option)
-            => AssertHelper.Assert(ReadUTF16BigEndian(length), "UTF16BE", option);
-
-        /// <summary>
-        /// Reads a big-endian UTF16 encoded <see cref="string"/> in a fixed-size field and throws if it is not one of the specified options.
-        /// </summary>
-        /// <param name="length">The byte length of the fixed field.</param>
-        /// <param name="options">The options to assert the <see cref="string"/> as.</param>
-        /// <returns>A <see cref="string"/>.</returns>
-        public string AssertUTF16BigEndian(int length, ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadUTF16BigEndian(length), "UTF16BE", options);
+            => AssertHelper.Assert(ReadUTF16BigEndian(options[0].Length), "UTF16BE", options);
 
         #endregion
 
@@ -3052,38 +2976,20 @@ namespace Edoke.IO
             => EncodingHelper.UTF16LE.GetString(Get16BitStringSpan(position, length));
 
         /// <summary>
-        /// Reads a null-terminated little-endian UTF16 encoded <see cref="string"/> and throws if it is not the specified option.
+        /// Reads a little-endian UTF16 encoded <see cref="string"/> and throws if it is not the specified option.
         /// </summary>
         /// <param name="option">The option to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF16LittleEndian(string option)
-            => AssertHelper.Assert(ReadUTF16LittleEndian(), "UTF16LE", option);
+            => AssertHelper.Assert(ReadUTF16LittleEndian(option.Length), "UTF16LE", option);
 
         /// <summary>
-        /// Reads a null-terminated little-endian UTF16 encoded <see cref="string"/> and throws if it is not one of the specified options.
+        /// Reads a little-endian UTF16 encoded <see cref="string"/> and throws if it is not one of the specified options.
         /// </summary>
         /// <param name="options">The options to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF16LittleEndian(ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadUTF16LittleEndian(), "UTF16LE", options);
-
-        /// <summary>
-        /// Reads a little-endian UTF16 encoded <see cref="string"/> in a fixed-size field and throws if it is not the specified option.
-        /// </summary>
-        /// <param name="length">The byte length of the fixed field.</param>
-        /// <param name="option">The option to assert the <see cref="string"/> as.</param>
-        /// <returns>A <see cref="string"/>.</returns>
-        public string AssertUTF16LittleEndian(int length, string option)
-            => AssertHelper.Assert(ReadUTF16LittleEndian(length), "UTF16LE", option);
-
-        /// <summary>
-        /// Reads a little-endian UTF16 encoded <see cref="string"/> in a fixed-size field and throws if it is not one of the specified options.
-        /// </summary>
-        /// <param name="length">The byte length of the fixed field.</param>
-        /// <param name="options">The options to assert the <see cref="string"/> as.</param>
-        /// <returns>A <see cref="string"/>.</returns>
-        public string AssertUTF16LittleEndian(int length, ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadUTF16LittleEndian(length), "UTF16LE", options);
+            => AssertHelper.Assert(ReadUTF16LittleEndian(options[0].Length), "UTF16LE", options);
 
         #endregion
     }

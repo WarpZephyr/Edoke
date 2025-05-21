@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 
 namespace Edoke.Helpers
 {
@@ -32,6 +33,40 @@ namespace Edoke.Helpers
         }
 
         /// <summary>
+        /// Asserts a value is one of the specified options, throwing if it is not.
+        /// </summary>
+        /// <typeparam name="T">The value type.</typeparam>
+        /// <param name="value">The value to assert.</param>
+        /// <param name="typeName">The name of the value type.</param>
+        /// <param name="format">The formatting to use for the values in strings.</param>
+        /// <param name="options">The options to assert.</param>
+        /// <returns>The value to assert.</returns>
+        /// <exception cref="InvalidDataException">The assertion failed.</exception>
+        public static T Assert<T>(T value, string typeName, string format, ReadOnlySpan<T> options) where T : IEquatable<T>
+        {
+            foreach (T option in options)
+            {
+                if (value.Equals(option))
+                {
+                    return value;
+                }
+            }
+
+            var sb = new StringBuilder();
+            for (int i = 0; i < options.Length; i++)
+            {
+                sb.Append($"{string.Format(format, options[i])}, ");
+            }
+
+            if (options.Length > 0)
+            {
+                sb.Append($"{string.Format(format, options[^1])}");
+            }
+
+            throw new InvalidDataException($"Assertion failed for {typeName}: {string.Format(format, value)} | Expected: {sb}");
+        }
+
+        /// <summary>
         /// Asserts a value is the specified option, throwing if it is not.
         /// </summary>
         /// <typeparam name="T">The value type.</typeparam>
@@ -48,6 +83,26 @@ namespace Edoke.Helpers
             }
 
             throw new InvalidDataException($"Assertion failed for {typeName}: {value} | Expected: {option}");
+        }
+
+        /// <summary>
+        /// Asserts a value is the specified option, throwing if it is not.
+        /// </summary>
+        /// <typeparam name="T">The value type.</typeparam>
+        /// <param name="value">The value to assert.</param>
+        /// <param name="typeName">The name of the value type.</param>
+        /// <param name="format">The formatting to use for the value in strings.</param>
+        /// <param name="option">The option to assert.</param>
+        /// <returns>The value to assert.</returns>
+        /// <exception cref="InvalidDataException">The assertion failed.</exception>
+        public static T Assert<T>(T value, string typeName, string format, T option) where T : IEquatable<T>
+        {
+            if (value.Equals(option))
+            {
+                return value;
+            }
+
+            throw new InvalidDataException($"Assertion failed for {typeName}: {string.Format(format, value)} | Expected: {string.Format(format, option)}");
         }
 
         /// <summary>

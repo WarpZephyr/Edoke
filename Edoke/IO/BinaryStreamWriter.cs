@@ -14,7 +14,7 @@ namespace Edoke.IO
     /// <summary>
     /// A binary writer for streams supporting endianness.
     /// </summary>
-    public class BinaryStreamWriter : IDisposable
+    public class BinaryStreamWriter : IBinaryWriter, IDisposable
     {
         #region Constants
 
@@ -436,7 +436,7 @@ namespace Edoke.IO
         #region SByte
 
         /// <summary>
-        /// Writes a <see cref="sbyte"/>.
+        /// Writes an <see cref="sbyte"/>.
         /// </summary>
         /// <param name="value">The value to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

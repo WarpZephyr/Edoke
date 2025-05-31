@@ -107,12 +107,14 @@ namespace Edoke.IO
         /// <summary>
         /// The length of the span.
         /// </summary>
-        public readonly int Length => Buffer.Length;
+        public readonly int Length
+            => Buffer.Length;
 
         /// <summary>
         /// The remaining length of the span from the current position.
         /// </summary>
-        public readonly int Remaining => Buffer.Length - BufferOffset;
+        public readonly int Remaining
+            => Buffer.Length - BufferOffset;
 
         #endregion
 

@@ -7,31 +7,17 @@ using System.Drawing;
 using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Edoke.IO
 {
     /// <summary>
-    /// A binary writer for streams supporting endianness.
+    /// A binary writer for spans supporting endianness.
     /// </summary>
-    public class BinaryStreamWriter : IBinaryWriter, IDisposable
+    public ref struct BinarySpanWriter
     {
         #region Constants
-
-        /// <summary>
-        /// The pattern value for reservations.
-        /// </summary>
-        private const byte ReservationPattern = 0xFE;
-
-        /// <summary>
-        /// The type name for 4-Byte varints.
-        /// </summary>
-        private const string VarintIntTypeName = "Varint32";
-
-        /// <summary>
-        /// The type name for 8-Byte varints.
-        /// </summary>
-        private const string VarintLongTypeName = "Varint64";
 
         // Buffer Thresholds below not tested.
 
@@ -65,231 +51,151 @@ namespace Edoke.IO
         #region Members
 
         /// <summary>
-        /// The underlying <see cref="Stream"/>.
+        /// The underlying span.
         /// </summary>
-        private readonly Stream InternalStream;
+        private readonly Span<byte> Buffer;
 
         /// <summary>
-        /// The underlying <see cref="BinaryWriter"/> assisting in writing.
+        /// The current position of the writer.
         /// </summary>
-        private readonly BinaryWriter Writer;
+        private int BufferOffset;
 
         /// <summary>
-        /// A jump <see cref="Stack{T}"/> for step-ins.
+        /// Whether or not to write in big endian.
         /// </summary>
-        private readonly Stack<long> Steps;
+        public bool BigEndian { get; set; }
 
         /// <summary>
-        /// A jump <see cref="Dictionary{TKey, TValue}"/> for recording and filling reservations.
+        /// The type of varint for writing varints.
         /// </summary>
-        private readonly Dictionary<string, long> Reservations;
-
-        /// <summary>
-        /// Whether or not endianness is reversed.
-        /// </summary>
-        private bool IsEndiannessReversed;
-
-        /// <summary>
-        /// The backing field for <see cref="BigEndian"/>.
-        /// </summary>
-        private bool BigEndianField;
-
-        /// <summary>
-        /// Whether or not this <see cref="BinaryStreamWriter"/> has been disposed.
-        /// </summary>
-        private bool disposedValue;
-
-        /// <summary>
-        /// The backing field for <see cref="VarintLong"/>.
-        /// </summary>
-        private bool VarintLongField;
-
-        /// <summary>
-        /// The current size of varints.
-        /// </summary>
-        public int VarintSize { get; private set; }
+        public bool VarintLong { get; set; }
 
         #endregion
 
         #region Properties
 
         /// <summary>
-        /// The underlying <see cref="Stream"/>.
+        /// Whether or not endianness is reversed.
         /// </summary>
-        public Stream BaseStream
-            => InternalStream;
-
-        /// <summary>
-        /// Whether or not to read in big endian.
-        /// </summary>
-        public bool BigEndian
+        private readonly bool IsEndiannessReversed
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => BigEndianField;
-            set
-            {
-                IsEndiannessReversed = BigEndian != !BitConverter.IsLittleEndian;
-                BigEndianField = value;
-            }
+            get => BigEndian != !BitConverter.IsLittleEndian;
         }
 
         /// <summary>
         /// The current position of the writer.
         /// </summary>
-        public long Position
+        public int Position
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => InternalStream.Position;
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set => InternalStream.Position = value;
-        }
-
-        /// <summary>
-        /// The type of varint for reading varints.
-        /// </summary>
-        public bool VarintLong
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => VarintLongField;
+            readonly get => BufferOffset;
             set
             {
-                VarintSize = value ? 8 : 4;
-                VarintLongField = value;
+                ArgumentOutOfRangeException.ThrowIfGreaterThan((uint)value, (uint)Length, nameof(value));
+                BufferOffset = value;
             }
         }
 
         /// <summary>
-        /// The length of the underlying <see cref="Stream"/>.
+        /// The current size of varints in bytes.
         /// </summary>
-        public long Length
-            => InternalStream.Length;
+        public readonly int VarintSize
+            => VarintLong ? 8 : 4;
 
         /// <summary>
-        /// The remaining length of the underlying <see cref="Stream"/> from the current position.
+        /// The length of the span.
         /// </summary>
-        public long Remaining
-            => InternalStream.Length - InternalStream.Position;
+        public readonly int Length
+            => Buffer.Length;
 
         /// <summary>
-        /// Whether or not this <see cref="BinaryStreamReader"/> has been disposed.
+        /// The remaining length of the span from the current position.
         /// </summary>
-        public bool IsDisposed
-            => disposedValue;
-
-        /// <summary>
-        /// The depth of steps on the writer.
-        /// </summary>
-        public int StepDepth
-            => Steps.Count;
-
-        /// <summary>
-        /// The number of reservations on the writer.
-        /// </summary>
-        public int ReservationCount
-            => Reservations.Count;
+        public readonly int Remaining
+            => Buffer.Length - BufferOffset;
 
         #endregion
 
         #region Constructors
 
         /// <summary>
-        /// Creates a new <see cref="BinaryStreamWriter"/> from the specified options.
+        /// Create a new <see cref="BinarySpanWriter"/> from a <see cref="Span{T}"/> of <see cref="byte"/>.
         /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+        /// <param name="buffer">The <see cref="Span{T}"/> to write to.</param>
         /// <param name="bigEndian">Whether or not to write in big endian.</param>
-        /// <param name="leaveOpen">Whether or not to leave the <see cref="Stream"/> open when disposing.</param>
-        public BinaryStreamWriter(Stream stream, bool bigEndian, bool leaveOpen)
+        public BinarySpanWriter(Span<byte> buffer, bool bigEndian)
         {
-            InternalStream = stream;
+            Buffer = buffer;
             BigEndian = bigEndian;
-            Steps = [];
-            Reservations = [];
-            Writer = new BinaryWriter(stream, Encoding.Default, leaveOpen);
         }
 
         /// <summary>
-        /// Creates a new <see cref="BinaryStreamWriter"/> from the specified options.
+        /// Create a new <see cref="BinarySpanWriter"/> from an <see cref="Array"/> of <see cref="byte"/>.
         /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+        /// <param name="buffer">The <see cref="Array"/> to write to.</param>
         /// <param name="bigEndian">Whether or not to write in big endian.</param>
-        public BinaryStreamWriter(Stream stream, bool bigEndian) : this(stream, bigEndian, false) { }
+        public BinarySpanWriter(byte[] buffer, bool bigEndian) : this(new Span<byte>(buffer), bigEndian) { }
 
         /// <summary>
-        /// Creates a new <see cref="BinaryStreamWriter"/> writing to the specified <see cref="Stream"/>.
+        /// Create a new <see cref="BinarySpanWriter"/> from a <see cref="Span{T}"/> of <see cref="byte"/>.
         /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-        public BinaryStreamWriter(Stream stream) : this(stream, !BitConverter.IsLittleEndian, false) { }
+        /// <param name="buffer">The <see cref="Span{T}"/> to write to.</param>
+        public BinarySpanWriter(Span<byte> buffer) : this((Span<byte>)buffer, !BitConverter.IsLittleEndian) { }
 
         /// <summary>
-        /// Creates a new <see cref="BinaryStreamWriter"/> from the specified options.
+        /// Create a new <see cref="BinarySpanWriter"/> from an <see cref="Array"/> of <see cref="byte"/>.
         /// </summary>
-        /// <param name="path">The path to a file to write to.</param>
-        /// <param name="bigEndian">Whether or not to write in big endian.</param>
-        public BinaryStreamWriter(string path, bool bigEndian) : this(File.OpenWrite(path), bigEndian) { }
-
-        /// <summary>
-        /// Creates a new <see cref="BinaryStreamWriter"/> writing a file to the specified path.
-        /// </summary>
-        /// <param name="path">The path to a file to write to.</param>
-        public BinaryStreamWriter(string path) : this(File.OpenWrite(path), !BitConverter.IsLittleEndian) { }
-
-        /// <summary>
-        /// Creates a new <see cref="BinaryStreamWriter"/> writing to a new <see cref="MemoryStream"/>.
-        /// </summary>
-        /// <param name="bigEndian">Whether or not to write in big endian.</param>
-        public BinaryStreamWriter(bool bigEndian) : this(new MemoryStream(), bigEndian) { }
-
-        /// <summary>
-        /// Creates a new <see cref="BinaryStreamWriter"/> writing to a new <see cref="MemoryStream"/>.
-        /// </summary>
-        public BinaryStreamWriter() : this(new MemoryStream(), !BitConverter.IsLittleEndian) { }
+        /// <param name="buffer">The <see cref="Array"/> to write to.</param>
+        public BinarySpanWriter(byte[] buffer) : this(new Span<byte>(buffer), !BitConverter.IsLittleEndian) { }
 
         #endregion
 
-        #region Finish
+        #region Validation
 
         /// <summary>
-        /// Verify that all reservations are filled and close the <see cref="Stream"/>.
+        /// Validate the specified length argument.
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Finish()
-            => Dispose();
-
-        /// <summary>
-        /// Verify that all reservations are filled, close the <see cref="Stream"/>, and return the written data as a <see cref="byte"/> <see cref="Array"/>.
-        /// </summary>
-        public byte[] FinishBytes()
+        /// <param name="length">The length.</param>
+        /// <exception cref="ArgumentOutOfRangeException">The argument was out of range.</exception>
+        private readonly void ValidateLength(int length)
         {
-            byte[] result = ((MemoryStream)InternalStream).ToArray();
-            Dispose();
-            return result;
-        }
-
-        #endregion
-
-        #region Step
-
-        /// <summary>
-        /// Store the current position of the <see cref="Stream"/> on a stack, then move to the specified offset.
-        /// </summary>
-        public void StepIn(long offset)
-        {
-            Steps.Push(offset);
-            InternalStream.Position = offset;
-        }
-
-        /// <summary>
-        /// Restore the previous position of the <see cref="Stream"/> from a stack.
-        /// </summary>
-        public void StepOut()
-        {
-            if (Steps.Count == 0)
+            if ((uint)length > (uint)Remaining)
             {
-                throw new InvalidOperationException("Writer is already stepped all the way out.");
+                throw new ArgumentOutOfRangeException(nameof(length), "Cannot write beyond the specified span.");
+            }
+        }
+
+        /// <summary>
+        /// Validate the specified position argument.
+        /// </summary>
+        /// <param name="position">The position.</param>
+        /// <exception cref="ArgumentOutOfRangeException">The argument was out of range.</exception>
+        private readonly void ValidatePosition(int position)
+        {
+            if ((uint)position > (uint)BufferOffset)
+            {
+                throw new ArgumentOutOfRangeException(nameof(position), "Cannot write beyond the specified span.");
+            }
+        }
+
+        /// <summary>
+        /// Validate the specified position and length arguments.
+        /// </summary>
+        /// <param name="position">The position.</param>
+        /// <param name="length">The length.</param>
+        /// <exception cref="ArgumentOutOfRangeException">An argument was out of range.</exception>
+        private readonly void ValidateArguments(int position, int length)
+        {
+            if ((uint)position > (uint)BufferOffset)
+            {
+                throw new ArgumentOutOfRangeException(nameof(position), "Cannot write beyond the specified span.");
             }
 
-            InternalStream.Position = Steps.Pop();
+            if ((uint)length > (uint)(Buffer.Length - position))
+            {
+                throw new ArgumentOutOfRangeException(nameof(length), "Cannot write beyond the specified span.");
+            }
         }
 
         #endregion
@@ -301,7 +207,7 @@ namespace Edoke.IO
         /// </summary>
         /// <param name="count">The amount to rewind.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Rewind(long count)
+        public void Rewind(int count)
             => Position -= count;
 
         /// <summary>
@@ -309,15 +215,16 @@ namespace Edoke.IO
         /// </summary>
         /// <param name="count">The amount to skip.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Skip(long count)
+        public void Skip(int count)
             => Position += count;
 
         /// <summary>
-        /// Seek to the specified position based on the start of the underlying <see cref="Stream"/>.
+        /// Seek to the specified position based on the start of the span.
         /// </summary>
         /// <param name="position">The position to seek to.</param>
-        public void Seek(long position)
-            => InternalStream.Seek(position, SeekOrigin.Begin);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Seek(int position)
+            => Position = position;
 
         /// <summary>
         /// Seek to the specified offset from the specified <see cref="SeekOrigin"/>.
@@ -325,35 +232,54 @@ namespace Edoke.IO
         /// <param name="offset">The offset to seek to.</param>
         /// <param name="origin">The origin to seek from.</param>
         /// <exception cref="NotSupportedException">The specified <see cref="SeekOrigin"/> was unknown.</exception>
-        public void Seek(long offset, SeekOrigin origin)
-            => InternalStream.Seek(offset, origin);
+        public void Seek(int offset, SeekOrigin origin)
+        {
+            switch (origin)
+            {
+                case SeekOrigin.Begin:
+                    Position = offset;
+                    break;
+                case SeekOrigin.Current:
+                    Position += offset;
+                    break;
+                case SeekOrigin.End:
+                    Position = Length - offset;
+                    break;
+                default:
+                    throw new NotSupportedException($"Unknown {nameof(SeekOrigin)}: {origin}");
+            }
+        }
 
         #endregion
 
         #region Pad
 
         /// <summary>
-        /// Writes the specified <see cref="byte"/> value until the stream position meets the specified alignment.
+        /// Write the specified padding value until the specified alignment relative to the current position is met.
         /// </summary>
-        public void Pad(int alignment, byte value)
+        /// <param name="alignment">The specified alignment.</param>
+        /// <param name="padding">The padding value to write.</param>
+        /// <exception cref="ArgumentOutOfRangeException">The alignment argument was negative or zero.</exception>
+        /// <exception cref="InvalidOperationException">The next alignment position was out of range.</exception>
+        public void Pad(int alignment, byte padding)
         {
-            long remainder = InternalStream.Position % alignment;
+            long remainder = BufferOffset % alignment;
             if (remainder > 0)
             {
                 long count = alignment - remainder;
                 if (count == 1)
                 {
-                    InternalStream.WriteByte(value);
+                    WriteByte(padding);
                 }
                 else if (count >= PadBufferMinThreshold && count <= PadBufferMaxThreshold)
                 {
-                    WritePattern((int)count, value);
+                    WritePattern((int)count, padding);
                 }
                 else
                 {
                     while (count > 0)
                     {
-                        InternalStream.WriteByte(value);
+                        WriteByte(padding);
                         count--;
                     }
                 }
@@ -361,27 +287,32 @@ namespace Edoke.IO
         }
 
         /// <summary>
-        /// Writes the specified <see cref="byte"/> value until the stream position meets the specified alignment relative to the given offset.
+        /// Write the specified padding value until the specified alignment relative to the specified position is met.
         /// </summary>
-        public void PadFrom(long offset, int alignment, byte value)
+        /// <param name="position">The specified position.</param>
+        /// <param name="alignment">The specified alignment.</param>
+        /// <param name="padding">The padding value to write.</param>
+        /// <exception cref="ArgumentOutOfRangeException">An argument was out of range.</exception>
+        /// <exception cref="InvalidOperationException">An argument or the next alignment position was out of range.</exception>
+        public void PadFrom(int position, int alignment, byte padding)
         {
-            long remainder = (InternalStream.Position - offset) % alignment;
+            long remainder = (BufferOffset - position) % alignment;
             if (remainder > 0)
             {
                 long count = alignment - remainder;
                 if (count == 1)
                 {
-                    InternalStream.WriteByte(value);
+                    WriteByte(padding);
                 }
                 else if (count >= PadBufferMinThreshold && count <= PadBufferMaxThreshold)
                 {
-                    WritePattern((int)count, value);
+                    WritePattern((int)count, padding);
                 }
                 else
                 {
                     while (count > 0)
                     {
-                        InternalStream.WriteByte(value);
+                        WriteByte(padding);
                         count--;
                     }
                 }
@@ -390,45 +321,34 @@ namespace Edoke.IO
 
         #endregion
 
-        #region Reservation
+        #region Write
 
         /// <summary>
-        /// Creates a reservation of the specified length using the specified name and type name.
+        /// Write an unmanaged value.
         /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        /// <param name="typeName">The name of the type of reservation.</param>
-        /// <param name="length">The length of the reservation.</param>
-        /// <exception cref="InvalidOperationException">The reservation already exists.</exception>
-        private void Reserve(string name, string typeName, int length)
+        /// <typeparam name="T">The type of the value to write.</typeparam>
+        /// <param name="value">The value to write.</param>
+        private unsafe void Write<T>(T value) where T : unmanaged
         {
-            string key = $"{name}:{typeName}";
-            if (!Reservations.TryAdd(key, Position))
-            {
-                throw new InvalidOperationException($"Reservation already exists: {name}");
-            }
-
-            for (int i = 0; i < length; i++)
-            {
-                InternalStream.WriteByte(ReservationPattern);
-            }
+            int pos = BufferOffset;
+            Position += sizeof(T);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref MemoryMarshal.GetReference(Buffer), pos), value);
         }
 
         /// <summary>
-        /// Marks a reservation of the specified name and type name as filled and returns it's position.
+        /// Write a <see cref="ReadOnlySpan{T}"/> of unmanaged values.
         /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        /// <param name="typeName">The name of the type of reservation.</param>
-        /// <returns>The position of the reservation.</returns>
-        /// <exception cref="InvalidOperationException">The reservation doesn't exist.</exception>
-        private long Fill(string name, string typeName)
+        /// <typeparam name="T">The type of the values to write.</typeparam>
+        /// <param name="values">The values to write.</param>
+        private unsafe void Write<T>(ReadOnlySpan<T> values) where T : unmanaged
         {
-            string key = $"{name}:{typeName}";
-            if (!Reservations.Remove(key, out long position))
-            {
-                throw new InvalidOperationException($"Reservation doesn't exist: {name}");
-            }
+            int size = sizeof(T);
+            int length = size * values.Length;
 
-            return position;
+            fixed (T* ptr = values)
+            {
+                WriteByteSpan(new ReadOnlySpan<byte>(ptr, length));
+            }
         }
 
         #endregion
@@ -441,7 +361,7 @@ namespace Edoke.IO
         /// <param name="value">The value to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteSByte(sbyte value)
-            => InternalStream.WriteByte((byte)value);
+            => WriteByte((byte)value);
 
         /// <summary>
         /// Writes an <see cref="IList{T}"/> of <see cref="sbyte"/>.
@@ -451,7 +371,7 @@ namespace Edoke.IO
         {
             for (int i = 0; i < values.Count; i++)
             {
-                InternalStream.WriteByte((byte)values[i]);
+                WriteSByte(values[i]);
             }
         }
 
@@ -459,33 +379,9 @@ namespace Edoke.IO
         /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="sbyte"/>.
         /// </summary>
         /// <param name="sbytes">The values to write.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteSByteSpan(ReadOnlySpan<sbyte> values)
-        {
-            for (int i = 0; i < values.Length; i++)
-            {
-                InternalStream.WriteByte((byte)values[i]);
-            }
-        }
-
-        /// <summary>
-        /// Reserves a <see cref="sbyte"/> to fill at a later time.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        public void ReserveSByte(string name)
-            => Reserve(name, nameof(SByte), sizeof(sbyte));
-
-        /// <summary>
-        /// Fills a <see cref="sbyte"/> reservation.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        /// <param name="value">The fill value.</param>
-        public void FillSByte(string name, sbyte value)
-        {
-            long origPos = Position;
-            Position = Fill(name, nameof(SByte));
-            InternalStream.WriteByte((byte)value);
-            Position = origPos;
-        }
+            => WriteByteSpan(CastHelper.ToByteSpan(values));
 
         #endregion
 
@@ -495,9 +391,12 @@ namespace Edoke.IO
         /// Writes a <see cref="byte"/>.
         /// </summary>
         /// <param name="value">The value to write.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteByte(byte value)
-            => InternalStream.WriteByte(value);
+        {
+            int pos = BufferOffset;
+            Position += 1;
+            Buffer[pos] = value;
+        }
 
         /// <summary>
         /// Writes an <see cref="Array"/> of <see cref="byte"/>.
@@ -505,7 +404,7 @@ namespace Edoke.IO
         /// <param name="values">The values to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteBytes(byte[] values)
-            => InternalStream.Write(values, 0, values.Length);
+            => WriteByteSpan(values);
 
         /// <summary>
         /// Writes an <see cref="IList{T}"/> of <see cref="byte"/>.
@@ -515,7 +414,7 @@ namespace Edoke.IO
         {
             for (int i = 0; i < values.Count; i++)
             {
-                InternalStream.WriteByte(values[i]);
+                WriteByte(values[i]);
             }
         }
 
@@ -523,28 +422,11 @@ namespace Edoke.IO
         /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="byte"/>.
         /// </summary>
         /// <param name="bytes">The values to write.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteByteSpan(ReadOnlySpan<byte> values)
-            => InternalStream.Write(values);
-
-        /// <summary>
-        /// Reserves a <see cref="byte"/> to fill at a later time.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        public void ReserveByte(string name)
-            => Reserve(name, nameof(Byte), sizeof(byte));
-
-        /// <summary>
-        /// Fills a <see cref="byte"/> reservation.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        /// <param name="value">The fill value.</param>
-        public void FillByte(string name, byte value)
         {
-            long origPos = Position;
-            Position = Fill(name, nameof(Byte));
-            InternalStream.WriteByte(value);
-            Position = origPos;
+            int pos = BufferOffset;
+            Position += values.Length;
+            values.CopyTo(Buffer[pos..values.Length]);
         }
 
         #endregion
@@ -552,18 +434,18 @@ namespace Edoke.IO
         #region Int16
 
         /// <summary>
-        /// Writes a <see cref="short"/>.
+        /// Writes an <see cref="short"/>.
         /// </summary>
         /// <param name="value">The value to write.</param>
         public void WriteInt16(short value)
         {
             if (IsEndiannessReversed)
             {
-                Writer.Write(BinaryPrimitives.ReverseEndianness(value));
+                Write(BinaryPrimitives.ReverseEndianness(value));
             }
             else
             {
-                Writer.Write(value);
+                Write(value);
             }
         }
 
@@ -577,14 +459,14 @@ namespace Edoke.IO
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(values[i]));
+                    Write(BinaryPrimitives.ReverseEndianness(values[i]));
                 }
             }
             else
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(values[i]);
+                    Write(values[i]);
                 }
             }
         }
@@ -597,38 +479,14 @@ namespace Edoke.IO
         {
             if (IsEndiannessReversed)
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(values[i]));
-                }
+                int pos = BufferOffset;
+                Position += values.Length * sizeof(short);
+                EndianHelper.CopyEndianReversedTo(values, CastHelper.ToInt16Span(Buffer[pos..], values.Length));
             }
             else
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(values[i]);
-                }
+                Write(values);
             }
-        }
-
-        /// <summary>
-        /// Reserves a <see cref="short"/> to fill at a later time.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        public void ReserveInt16(string name)
-            => Reserve(name, nameof(Int16), sizeof(short));
-
-        /// <summary>
-        /// Fills a <see cref="short"/> reservation.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        /// <param name="value">The fill value.</param>
-        public void FillInt16(string name, short value)
-        {
-            long origPos = Position;
-            Position = Fill(name, nameof(Int16));
-            WriteInt16(value);
-            Position = origPos;
         }
 
         #endregion
@@ -636,18 +494,18 @@ namespace Edoke.IO
         #region UInt16
 
         /// <summary>
-        /// Writes a <see cref="ushort"/>.
+        /// Writes an <see cref="ushort"/>.
         /// </summary>
         /// <param name="value">The value to write.</param>
         public void WriteUInt16(ushort value)
         {
             if (IsEndiannessReversed)
             {
-                Writer.Write(BinaryPrimitives.ReverseEndianness(value));
+                Write(BinaryPrimitives.ReverseEndianness(value));
             }
             else
             {
-                Writer.Write(value);
+                Write(value);
             }
         }
 
@@ -661,58 +519,34 @@ namespace Edoke.IO
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(values[i]));
+                    Write(BinaryPrimitives.ReverseEndianness(values[i]));
                 }
             }
             else
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(values[i]);
+                    Write(values[i]);
                 }
             }
         }
 
         /// <summary>
-        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="ushort"/>.
+        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="short"/>.
         /// </summary>
         /// <param name="values">The values to write.</param>
         public void WriteUInt16Span(ReadOnlySpan<ushort> values)
         {
             if (IsEndiannessReversed)
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(values[i]));
-                }
+                int pos = BufferOffset;
+                Position += values.Length * sizeof(ushort);
+                EndianHelper.CopyEndianReversedTo(values, CastHelper.ToUInt16Span(Buffer[pos..], values.Length));
             }
             else
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(values[i]);
-                }
+                Write(values);
             }
-        }
-
-        /// <summary>
-        /// Reserves a <see cref="ushort"/> to fill at a later time.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        public void ReserveUInt16(string name)
-            => Reserve(name, nameof(UInt16), sizeof(ushort));
-
-        /// <summary>
-        /// Fills a <see cref="ushort"/> reservation.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        /// <param name="value">The fill value.</param>
-        public void FillUInt16(string name, ushort value)
-        {
-            long origPos = Position;
-            Position = Fill(name, nameof(UInt16));
-            WriteUInt16(value);
-            Position = origPos;
         }
 
         #endregion
@@ -727,11 +561,11 @@ namespace Edoke.IO
         {
             if (IsEndiannessReversed)
             {
-                Writer.Write(BinaryPrimitives.ReverseEndianness(value));
+                Write(BinaryPrimitives.ReverseEndianness(value));
             }
             else
             {
-                Writer.Write(value);
+                Write(value);
             }
         }
 
@@ -745,58 +579,34 @@ namespace Edoke.IO
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(values[i]));
+                    Write(BinaryPrimitives.ReverseEndianness(values[i]));
                 }
             }
             else
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(values[i]);
+                    Write(values[i]);
                 }
             }
         }
 
         /// <summary>
-        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="int"/>.
+        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="short"/>.
         /// </summary>
         /// <param name="values">The values to write.</param>
         public void WriteInt32Span(ReadOnlySpan<int> values)
         {
             if (IsEndiannessReversed)
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(values[i]));
-                }
+                int pos = BufferOffset;
+                Position += values.Length * sizeof(int);
+                EndianHelper.CopyEndianReversedTo(values, CastHelper.ToInt32Span(Buffer[pos..], values.Length));
             }
             else
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(values[i]);
-                }
+                Write(values);
             }
-        }
-
-        /// <summary>
-        /// Reserves an <see cref="int"/> to fill at a later time.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        public void ReserveInt32(string name)
-            => Reserve(name, nameof(Int32), sizeof(int));
-
-        /// <summary>
-        /// Fills an <see cref="int"/> reservation.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        /// <param name="value">The fill value.</param>
-        public void FillInt32(string name, int value)
-        {
-            long origPos = Position;
-            Position = Fill(name, nameof(Int32));
-            WriteInt32(value);
-            Position = origPos;
         }
 
         #endregion
@@ -804,18 +614,18 @@ namespace Edoke.IO
         #region UInt32
 
         /// <summary>
-        /// Writes a <see cref="uint"/>.
+        /// Writes an <see cref="uint"/>.
         /// </summary>
         /// <param name="value">The value to write.</param>
         public void WriteUInt32(uint value)
         {
             if (IsEndiannessReversed)
             {
-                Writer.Write(BinaryPrimitives.ReverseEndianness(value));
+                Write(BinaryPrimitives.ReverseEndianness(value));
             }
             else
             {
-                Writer.Write(value);
+                Write(value);
             }
         }
 
@@ -829,58 +639,34 @@ namespace Edoke.IO
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(values[i]));
+                    Write(BinaryPrimitives.ReverseEndianness(values[i]));
                 }
             }
             else
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(values[i]);
+                    Write(values[i]);
                 }
             }
         }
 
         /// <summary>
-        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="uint"/>.
+        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="short"/>.
         /// </summary>
         /// <param name="values">The values to write.</param>
         public void WriteUInt32Span(ReadOnlySpan<uint> values)
         {
             if (IsEndiannessReversed)
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(values[i]));
-                }
+                int pos = BufferOffset;
+                Position += values.Length * sizeof(uint);
+                EndianHelper.CopyEndianReversedTo(values, CastHelper.ToUInt32Span(Buffer[pos..], values.Length));
             }
             else
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(values[i]);
-                }
+                Write(values);
             }
-        }
-
-        /// <summary>
-        /// Reserves a <see cref="uint"/> to fill at a later time.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        public void ReserveUInt32(string name)
-            => Reserve(name, nameof(UInt32), sizeof(uint));
-
-        /// <summary>
-        /// Fills a <see cref="uint"/> reservation.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        /// <param name="value">The fill value.</param>
-        public void FillUInt32(string name, uint value)
-        {
-            long origPos = Position;
-            Position = Fill(name, nameof(UInt32));
-            WriteUInt32(value);
-            Position = origPos;
         }
 
         #endregion
@@ -888,18 +674,18 @@ namespace Edoke.IO
         #region Int64
 
         /// <summary>
-        /// Writes a <see cref="long"/>.
+        /// Writes an <see cref="long"/>.
         /// </summary>
         /// <param name="value">The value to write.</param>
         public void WriteInt64(long value)
         {
             if (IsEndiannessReversed)
             {
-                Writer.Write(BinaryPrimitives.ReverseEndianness(value));
+                Write(BinaryPrimitives.ReverseEndianness(value));
             }
             else
             {
-                Writer.Write(value);
+                Write(value);
             }
         }
 
@@ -913,58 +699,34 @@ namespace Edoke.IO
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(values[i]));
+                    Write(BinaryPrimitives.ReverseEndianness(values[i]));
                 }
             }
             else
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(values[i]);
+                    Write(values[i]);
                 }
             }
         }
 
         /// <summary>
-        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="long"/>.
+        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="short"/>.
         /// </summary>
         /// <param name="values">The values to write.</param>
         public void WriteInt64Span(ReadOnlySpan<long> values)
         {
             if (IsEndiannessReversed)
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(values[i]));
-                }
+                int pos = BufferOffset;
+                Position += values.Length * sizeof(long);
+                EndianHelper.CopyEndianReversedTo(values, CastHelper.ToInt64Span(Buffer[pos..], values.Length));
             }
             else
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(values[i]);
-                }
+                Write(values);
             }
-        }
-
-        /// <summary>
-        /// Reserves a <see cref="long"/> to fill at a later time.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        public void ReserveInt64(string name)
-            => Reserve(name, nameof(Int64), sizeof(long));
-
-        /// <summary>
-        /// Fills a <see cref="long"/> reservation.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        /// <param name="value">The fill value.</param>
-        public void FillInt64(string name, long value)
-        {
-            long origPos = Position;
-            Position = Fill(name, nameof(Int64));
-            WriteInt64(value);
-            Position = origPos;
         }
 
         #endregion
@@ -972,18 +734,18 @@ namespace Edoke.IO
         #region UInt64
 
         /// <summary>
-        /// Writes a <see cref="ulong"/>.
+        /// Writes an <see cref="ulong"/>.
         /// </summary>
         /// <param name="value">The value to write.</param>
         public void WriteUInt64(ulong value)
         {
             if (IsEndiannessReversed)
             {
-                Writer.Write(BinaryPrimitives.ReverseEndianness(value));
+                Write(BinaryPrimitives.ReverseEndianness(value));
             }
             else
             {
-                Writer.Write(value);
+                Write(value);
             }
         }
 
@@ -997,58 +759,34 @@ namespace Edoke.IO
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(values[i]));
+                    Write(BinaryPrimitives.ReverseEndianness(values[i]));
                 }
             }
             else
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(values[i]);
+                    Write(values[i]);
                 }
             }
         }
 
         /// <summary>
-        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="ulong"/>.
+        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="short"/>.
         /// </summary>
         /// <param name="values">The values to write.</param>
         public void WriteUInt64Span(ReadOnlySpan<ulong> values)
         {
             if (IsEndiannessReversed)
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(values[i]));
-                }
+                int pos = BufferOffset;
+                Position += values.Length * sizeof(ulong);
+                EndianHelper.CopyEndianReversedTo(values, CastHelper.ToUInt64Span(Buffer[pos..], values.Length));
             }
             else
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(values[i]);
-                }
+                Write(values);
             }
-        }
-
-        /// <summary>
-        /// Reserves a <see cref="ulong"/> to fill at a later time.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        public void ReserveUInt64(string name)
-            => Reserve(name, nameof(UInt64), sizeof(ulong));
-
-        /// <summary>
-        /// Fills a <see cref="ulong"/> reservation.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        /// <param name="value">The fill value.</param>
-        public void FillUInt64(string name, ulong value)
-        {
-            long origPos = Position;
-            Position = Fill(name, nameof(UInt64));
-            WriteUInt64(value);
-            Position = origPos;
         }
 
         #endregion
@@ -1056,18 +794,18 @@ namespace Edoke.IO
         #region Half
 
         /// <summary>
-        /// Writes a <see cref="Half"/>.
+        /// Writes an <see cref="Half"/>.
         /// </summary>
         /// <param name="value">The value to write.</param>
         public void WriteHalf(Half value)
         {
             if (IsEndiannessReversed)
             {
-                Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.HalfToUInt16Bits(value)));
+                Write(BinaryPrimitives.ReverseEndianness(BitConverter.HalfToUInt16Bits(value)));
             }
             else
             {
-                Writer.Write(value);
+                Write(value);
             }
         }
 
@@ -1081,58 +819,34 @@ namespace Edoke.IO
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.HalfToUInt16Bits(values[i])));
+                    Write(BinaryPrimitives.ReverseEndianness(BitConverter.HalfToUInt16Bits(values[i])));
                 }
             }
             else
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(values[i]);
+                    Write(values[i]);
                 }
             }
         }
 
         /// <summary>
-        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="Half"/>.
+        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="short"/>.
         /// </summary>
         /// <param name="values">The values to write.</param>
         public void WriteHalfSpan(ReadOnlySpan<Half> values)
         {
             if (IsEndiannessReversed)
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.HalfToUInt16Bits(values[i])));
-                }
+                int pos = BufferOffset;
+                Position += values.Length * sizeof(ushort);
+                EndianHelper.CopyEndianReversedTo(values, CastHelper.ToHalfSpan(Buffer[pos..], values.Length));
             }
             else
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(values[i]);
-                }
+                Write(values);
             }
-        }
-
-        /// <summary>
-        /// Reserves a <see cref="Half"/> to fill at a later time.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        public void ReserveHalf(string name)
-            => Reserve(name, nameof(Half), sizeof(ushort));
-
-        /// <summary>
-        /// Fills a <see cref="Half"/> reservation.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        /// <param name="value">The fill value.</param>
-        public void FillHalf(string name, Half value)
-        {
-            long origPos = Position;
-            Position = Fill(name, nameof(Half));
-            WriteHalf(value);
-            Position = origPos;
         }
 
         #endregion
@@ -1140,18 +854,18 @@ namespace Edoke.IO
         #region Single
 
         /// <summary>
-        /// Writes a <see cref="float"/>.
+        /// Writes an <see cref="float"/>.
         /// </summary>
         /// <param name="value">The value to write.</param>
         public void WriteSingle(float value)
         {
             if (IsEndiannessReversed)
             {
-                Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value)));
+                Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value)));
             }
             else
             {
-                Writer.Write(value);
+                Write(value);
             }
         }
 
@@ -1165,58 +879,34 @@ namespace Edoke.IO
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i])));
+                    Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i])));
                 }
             }
             else
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(values[i]);
+                    Write(values[i]);
                 }
             }
         }
 
         /// <summary>
-        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="float"/>.
+        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="short"/>.
         /// </summary>
         /// <param name="values">The values to write.</param>
         public void WriteSingleSpan(ReadOnlySpan<float> values)
         {
             if (IsEndiannessReversed)
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i])));
-                }
+                int pos = BufferOffset;
+                Position += values.Length * sizeof(uint);
+                EndianHelper.CopyEndianReversedTo(values, CastHelper.ToSingleSpan(Buffer[pos..], values.Length));
             }
             else
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(values[i]);
-                }
+                Write(values);
             }
-        }
-
-        /// <summary>
-        /// Reserves a <see cref="float"/> to fill at a later time.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        public void ReserveSingle(string name)
-            => Reserve(name, nameof(Single), sizeof(float));
-
-        /// <summary>
-        /// Fills a <see cref="float"/> reservation.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        /// <param name="value">The fill value.</param>
-        public void FillSingle(string name, float value)
-        {
-            long origPos = Position;
-            Position = Fill(name, nameof(Single));
-            WriteSingle(value);
-            Position = origPos;
         }
 
         #endregion
@@ -1224,18 +914,18 @@ namespace Edoke.IO
         #region Double
 
         /// <summary>
-        /// Writes a <see cref="double"/>.
+        /// Writes an <see cref="double"/>.
         /// </summary>
         /// <param name="value">The value to write.</param>
         public void WriteDouble(double value)
         {
             if (IsEndiannessReversed)
             {
-                Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.DoubleToUInt64Bits(value)));
+                Write(BinaryPrimitives.ReverseEndianness(BitConverter.DoubleToUInt64Bits(value)));
             }
             else
             {
-                Writer.Write(value);
+                Write(value);
             }
         }
 
@@ -1249,80 +939,34 @@ namespace Edoke.IO
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.DoubleToUInt64Bits(values[i])));
+                    Write(BinaryPrimitives.ReverseEndianness(BitConverter.DoubleToUInt64Bits(values[i])));
                 }
             }
             else
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(values[i]);
+                    Write(values[i]);
                 }
             }
         }
 
         /// <summary>
-        /// Writes an <see cref="Array"/> of <see cref="double"/>.
-        /// </summary>
-        /// <param name="values">The values to write.</param>
-        public void WriteDoubles(double[] values)
-        {
-            if (IsEndiannessReversed)
-            {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.DoubleToUInt64Bits(values[i])));
-                }
-            }
-            else
-            {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(values[i]);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="double"/>.
+        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="short"/>.
         /// </summary>
         /// <param name="values">The values to write.</param>
         public void WriteDoubleSpan(ReadOnlySpan<double> values)
         {
             if (IsEndiannessReversed)
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.DoubleToUInt64Bits(values[i])));
-                }
+                int pos = BufferOffset;
+                Position += values.Length * sizeof(ulong);
+                EndianHelper.CopyEndianReversedTo(values, CastHelper.ToDoubleSpan(Buffer[pos..], values.Length));
             }
             else
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    Writer.Write(values[i]);
-                }
+                Write(values);
             }
-        }
-
-        /// <summary>
-        /// Reserves a <see cref="double"/> to fill at a later time.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        public void ReserveDouble(string name)
-            => Reserve(name, nameof(Double), sizeof(double));
-
-        /// <summary>
-        /// Fills a <see cref="double"/> reservation.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        /// <param name="value">The fill value.</param>
-        public void FillDouble(string name, double value)
-        {
-            long origPos = Position;
-            Position = Fill(name, nameof(Double));
-            WriteDouble(value);
-            Position = origPos;
         }
 
         #endregion
@@ -1361,14 +1005,14 @@ namespace Edoke.IO
                 {
                     for (int i = 0; i < values.Count; i++)
                     {
-                        Writer.Write(BinaryPrimitives.ReverseEndianness((uint)values[i]));
+                        Write(BinaryPrimitives.ReverseEndianness((uint)values[i]));
                     }
                 }
                 else
                 {
                     for (int i = 0; i < values.Count; i++)
                     {
-                        Writer.Write((int)values[i]);
+                        Write((int)values[i]);
                     }
                 }
             }
@@ -1390,55 +1034,17 @@ namespace Edoke.IO
                 {
                     for (int i = 0; i < values.Length; i++)
                     {
-                        Writer.Write(BinaryPrimitives.ReverseEndianness((uint)values[i]));
+                        Write(BinaryPrimitives.ReverseEndianness((uint)values[i]));
                     }
                 }
                 else
                 {
                     for (int i = 0; i < values.Length; i++)
                     {
-                        Writer.Write((int)values[i]);
+                        Write((int)values[i]);
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// Reserves a varint according to <see cref="VarintLong"/> to fill at a later time.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        public void ReserveVarint(string name)
-        {
-            if (VarintLong)
-            {
-                Reserve(name, VarintLongTypeName, sizeof(long));
-            }
-            else
-            {
-                Reserve(name, VarintIntTypeName, sizeof(int));
-            }
-        }
-
-        /// <summary>
-        /// Fills a varint reservation according to <see cref="VarintLong"/>.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        /// <param name="value">The fill value.</param>
-        public void FillVarint(string name, long value)
-        {
-            long origPos = Position;
-            if (VarintLong)
-            {
-                Position = Fill(name, VarintLongTypeName);
-                WriteInt64(value);
-            }
-            else
-            {
-                Position = Fill(name, VarintIntTypeName);
-                WriteInt32((int)value);
-            }
-
-            Position = origPos;
         }
 
         #endregion
@@ -1451,7 +1057,7 @@ namespace Edoke.IO
         /// <param name="value">The value to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteBoolean(bool value)
-            => InternalStream.WriteByte((byte)(value ? 1 : 0));
+            => WriteByte((byte)(value ? 1 : 0));
 
         /// <summary>
         /// Writes an <see cref="IList{T}"/> of <see cref="bool"/>.
@@ -1461,7 +1067,7 @@ namespace Edoke.IO
         {
             for (int i = 0; i < values.Count; i++)
             {
-                InternalStream.WriteByte((byte)(values[i] ? 1 : 0));
+                WriteByte((byte)(values[i] ? 1 : 0));
             }
         }
 
@@ -1473,28 +1079,8 @@ namespace Edoke.IO
         {
             for (int i = 0; i < values.Length; i++)
             {
-                InternalStream.WriteByte((byte)(values[i] ? 1 : 0));
+                WriteByte((byte)(values[i] ? 1 : 0));
             }
-        }
-
-        /// <summary>
-        /// Reserves a <see cref="bool"/> to fill at a later time.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        public void ReserveBoolean(string name)
-            => Reserve(name, nameof(Boolean), sizeof(short));
-
-        /// <summary>
-        /// Fills a <see cref="bool"/> reservation.
-        /// </summary>
-        /// <param name="name">The name of the reservation.</param>
-        /// <param name="value">The fill value.</param>
-        public void FillBoolean(string name, bool value)
-        {
-            long origPos = Position;
-            Position = Fill(name, nameof(Boolean));
-            WriteBoolean(value);
-            Position = origPos;
         }
 
         #endregion
@@ -1509,13 +1095,13 @@ namespace Edoke.IO
         {
             if (IsEndiannessReversed)
             {
-                Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.X)));
-                Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.Y)));
+                Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.X)));
+                Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.Y)));
             }
             else
             {
-                Writer.Write(value.X);
-                Writer.Write(value.Y);
+                Write(value.X);
+                Write(value.Y);
             }
         }
 
@@ -1529,16 +1115,16 @@ namespace Edoke.IO
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].X)));
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Y)));
+                    Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].X)));
+                    Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Y)));
                 }
             }
             else
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(values[i].X);
-                    Writer.Write(values[i].Y);
+                    Write(values[i].X);
+                    Write(values[i].Y);
                 }
             }
         }
@@ -1576,7 +1162,7 @@ namespace Edoke.IO
                                 uintCopySpan[i] = BinaryPrimitives.ReverseEndianness(uintSpan[i]);
                             }
 
-                            InternalStream.Write(buffer, 0, buffer.Length);
+                            WriteByteSpan(buffer);
                         }
                     }
                     finally
@@ -1588,8 +1174,8 @@ namespace Edoke.IO
                 {
                     for (int i = 0; i < values.Length; i++)
                     {
-                        Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].X)));
-                        Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Y)));
+                        Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].X)));
+                        Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Y)));
                     }
                 }
             }
@@ -1615,15 +1201,15 @@ namespace Edoke.IO
         {
             if (IsEndiannessReversed)
             {
-                Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.X)));
-                Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.Y)));
-                Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.Z)));
+                Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.X)));
+                Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.Y)));
+                Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.Z)));
             }
             else
             {
-                Writer.Write(value.X);
-                Writer.Write(value.Y);
-                Writer.Write(value.Z);
+                Write(value.X);
+                Write(value.Y);
+                Write(value.Z);
             }
         }
 
@@ -1637,18 +1223,18 @@ namespace Edoke.IO
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].X)));
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Y)));
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Z)));
+                    Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].X)));
+                    Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Y)));
+                    Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Z)));
                 }
             }
             else
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(values[i].X);
-                    Writer.Write(values[i].Y);
-                    Writer.Write(values[i].Z);
+                    Write(values[i].X);
+                    Write(values[i].Y);
+                    Write(values[i].Z);
                 }
             }
         }
@@ -1686,7 +1272,7 @@ namespace Edoke.IO
                                 uintCopySpan[i] = BinaryPrimitives.ReverseEndianness(uintSpan[i]);
                             }
 
-                            InternalStream.Write(buffer, 0, buffer.Length);
+                            WriteByteSpan(buffer);
                         }
                     }
                     finally
@@ -1698,9 +1284,9 @@ namespace Edoke.IO
                 {
                     for (int i = 0; i < values.Length; i++)
                     {
-                        Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].X)));
-                        Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Y)));
-                        Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Z)));
+                        Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].X)));
+                        Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Y)));
+                        Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Z)));
                     }
                 }
             }
@@ -1726,17 +1312,17 @@ namespace Edoke.IO
         {
             if (IsEndiannessReversed)
             {
-                Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.X)));
-                Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.Y)));
-                Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.Z)));
-                Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.W)));
+                Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.X)));
+                Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.Y)));
+                Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.Z)));
+                Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.W)));
             }
             else
             {
-                Writer.Write(value.X);
-                Writer.Write(value.Y);
-                Writer.Write(value.Z);
-                Writer.Write(value.W);
+                Write(value.X);
+                Write(value.Y);
+                Write(value.Z);
+                Write(value.W);
             }
         }
 
@@ -1750,20 +1336,20 @@ namespace Edoke.IO
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].X)));
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Y)));
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Z)));
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].W)));
+                    Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].X)));
+                    Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Y)));
+                    Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Z)));
+                    Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].W)));
                 }
             }
             else
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(values[i].X);
-                    Writer.Write(values[i].Y);
-                    Writer.Write(values[i].Z);
-                    Writer.Write(values[i].W);
+                    Write(values[i].X);
+                    Write(values[i].Y);
+                    Write(values[i].Z);
+                    Write(values[i].W);
                 }
             }
         }
@@ -1773,7 +1359,7 @@ namespace Edoke.IO
         /// </summary>
         /// <param name="values">The values to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteVector4s(Vector4[] values)
+        public unsafe void WriteVector4s(Vector4[] values)
             => WriteVector4Span(values);
 
         /// <summary>
@@ -1801,7 +1387,7 @@ namespace Edoke.IO
                                 uintCopySpan[i] = BinaryPrimitives.ReverseEndianness(uintSpan[i]);
                             }
 
-                            InternalStream.Write(buffer, 0, buffer.Length);
+                            WriteByteSpan(buffer);
                         }
                     }
                     finally
@@ -1813,10 +1399,10 @@ namespace Edoke.IO
                 {
                     for (int i = 0; i < values.Length; i++)
                     {
-                        Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].X)));
-                        Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Y)));
-                        Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Z)));
-                        Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].W)));
+                        Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].X)));
+                        Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Y)));
+                        Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Z)));
+                        Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].W)));
                     }
                 }
             }
@@ -1842,17 +1428,17 @@ namespace Edoke.IO
         {
             if (IsEndiannessReversed)
             {
-                Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.X)));
-                Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.Y)));
-                Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.Z)));
-                Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.W)));
+                Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.X)));
+                Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.Y)));
+                Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.Z)));
+                Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(value.W)));
             }
             else
             {
-                Writer.Write(value.X);
-                Writer.Write(value.Y);
-                Writer.Write(value.Z);
-                Writer.Write(value.W);
+                Write(value.X);
+                Write(value.Y);
+                Write(value.Z);
+                Write(value.W);
             }
         }
 
@@ -1866,20 +1452,20 @@ namespace Edoke.IO
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].X)));
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Y)));
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Z)));
-                    Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].W)));
+                    Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].X)));
+                    Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Y)));
+                    Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Z)));
+                    Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].W)));
                 }
             }
             else
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Writer.Write(values[i].X);
-                    Writer.Write(values[i].Y);
-                    Writer.Write(values[i].Z);
-                    Writer.Write(values[i].W);
+                    Write(values[i].X);
+                    Write(values[i].Y);
+                    Write(values[i].Z);
+                    Write(values[i].W);
                 }
             }
         }
@@ -1917,7 +1503,7 @@ namespace Edoke.IO
                                 uintCopySpan[i] = BinaryPrimitives.ReverseEndianness(uintSpan[i]);
                             }
 
-                            InternalStream.Write(buffer, 0, buffer.Length);
+                            WriteByteSpan(buffer);
                         }
                     }
                     finally
@@ -1929,10 +1515,10 @@ namespace Edoke.IO
                 {
                     for (int i = 0; i < values.Length; i++)
                     {
-                        Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].X)));
-                        Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Y)));
-                        Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Z)));
-                        Writer.Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].W)));
+                        Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].X)));
+                        Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Y)));
+                        Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].Z)));
+                        Write(BinaryPrimitives.ReverseEndianness(BitConverter.SingleToUInt32Bits(values[i].W)));
                     }
                 }
             }
@@ -1956,10 +1542,10 @@ namespace Edoke.IO
         /// <param name="color">The value to write.</param>
         public void WriteRgba(Color color)
         {
-            Writer.Write(color.R);
-            Writer.Write(color.G);
-            Writer.Write(color.B);
-            Writer.Write(color.A);
+            Write(color.R);
+            Write(color.G);
+            Write(color.B);
+            Write(color.A);
         }
 
         /// <summary>
@@ -1968,10 +1554,10 @@ namespace Edoke.IO
         /// <param name="color">The value to write.</param>
         public void WriteArgb(Color color)
         {
-            Writer.Write(color.A);
-            Writer.Write(color.R);
-            Writer.Write(color.G);
-            Writer.Write(color.B);
+            Write(color.A);
+            Write(color.R);
+            Write(color.G);
+            Write(color.B);
         }
 
         /// <summary>
@@ -1980,10 +1566,10 @@ namespace Edoke.IO
         /// <param name="color">The value to write.</param>
         public void WriteBgra(Color color)
         {
-            Writer.Write(color.B);
-            Writer.Write(color.G);
-            Writer.Write(color.R);
-            Writer.Write(color.A);
+            Write(color.B);
+            Write(color.G);
+            Write(color.R);
+            Write(color.A);
         }
 
         /// <summary>
@@ -1992,10 +1578,10 @@ namespace Edoke.IO
         /// <param name="color">The value to write.</param>
         public void WriteAbgr(Color color)
         {
-            Writer.Write(color.A);
-            Writer.Write(color.B);
-            Writer.Write(color.G);
-            Writer.Write(color.R);
+            Write(color.A);
+            Write(color.B);
+            Write(color.G);
+            Write(color.R);
         }
 
         /// <summary>
@@ -2004,9 +1590,9 @@ namespace Edoke.IO
         /// <param name="color">The value to write.</param>
         public void WriteRgb(Color color)
         {
-            Writer.Write(color.R);
-            Writer.Write(color.G);
-            Writer.Write(color.B);
+            Write(color.R);
+            Write(color.G);
+            Write(color.B);
         }
 
         /// <summary>
@@ -2015,9 +1601,9 @@ namespace Edoke.IO
         /// <param name="color">The value to write.</param>
         public void WriteBgr(Color color)
         {
-            Writer.Write(color.B);
-            Writer.Write(color.G);
-            Writer.Write(color.R);
+            Write(color.B);
+            Write(color.G);
+            Write(color.R);
         }
 
         #endregion
@@ -2042,7 +1628,9 @@ namespace Edoke.IO
                     }
                 }
 
-                InternalStream.Write(buffer);
+                int pos = BufferOffset;
+                Position += length;
+                buffer.CopyTo(Buffer[pos..length]);
                 return;
             }
 
@@ -2054,7 +1642,7 @@ namespace Edoke.IO
                     rental[i] = value;
                 }
 
-                InternalStream.Write(rental, 0, length);
+                WriteByteSpan(rental.AsSpan()[0..length]);
             }
             finally
             {
@@ -2073,7 +1661,7 @@ namespace Edoke.IO
         /// <param name="encoding">The encoding to use.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void WriteString(string value, Encoding encoding)
-            => Writer.Write(encoding.GetBytes(value));
+            => WriteByteSpan(encoding.GetBytes(value));
 
         /// <summary>
         /// Write an optionally null-terminated 8-Bit <see cref="string"/>.
@@ -2083,10 +1671,10 @@ namespace Edoke.IO
         /// <param name="terminate">Whether or not to add a null terminator.</param>
         private void Write8BitString(string value, Encoding encoding, bool terminate)
         {
-            Writer.Write(encoding.GetBytes(value));
+            WriteByteSpan(encoding.GetBytes(value));
             if (terminate)
             {
-                InternalStream.WriteByte(0);
+                WriteByte(0);
             }
         }
 
@@ -2098,11 +1686,11 @@ namespace Edoke.IO
         /// <param name="terminate">Whether or not to add a null terminator.</param>
         private void Write16BitString(string value, Encoding encoding, bool terminate)
         {
-            Writer.Write(encoding.GetBytes(value));
+            WriteByteSpan(encoding.GetBytes(value));
             if (terminate)
             {
-                InternalStream.WriteByte(0);
-                InternalStream.WriteByte(0);
+                WriteByte(0);
+                WriteByte(0);
             }
         }
 
@@ -2119,7 +1707,9 @@ namespace Edoke.IO
                 fixstr[i] = padding;
 
             encoding.GetBytes(value + '\0', fixstr);
-            Writer.Write(fixstr);
+            int pos = BufferOffset;
+            Position += fixstr.Length;
+            fixstr.CopyTo(Buffer[pos..length]);
         }
 
         #endregion
@@ -2259,44 +1849,6 @@ namespace Edoke.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteUTF16LittleEndian(string value, int length, byte padding)
             => WriteCharsFixed(value, EncodingHelper.UTF16LE, length, padding);
-
-        #endregion
-
-        #region IDisposable
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    if (Steps.Count > 0)
-                    {
-                        throw new InvalidOperationException($"The stream is not stepped all the way out; Depth: {Steps.Count}");
-                    }
-
-                    Steps.Clear();
-                    Steps.TrimExcess();
-                    if (Reservations.Count > 0)
-                    {
-                        throw new InvalidOperationException($"Not all stream reservations have been been filled: [{string.Join(", ", Reservations.Keys)}]");
-                    }
-
-                    Reservations.Clear();
-                    Reservations.TrimExcess();
-                    Writer.Dispose();
-                }
-
-                disposedValue = true;
-            }
-        }
-
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
 
         #endregion
     }

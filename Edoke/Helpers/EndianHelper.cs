@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers.Binary;
+using System.Drawing;
 using System.Runtime.InteropServices;
 
 namespace Edoke.Helpers
@@ -142,6 +143,123 @@ namespace Edoke.Helpers
                 castCopySpan[i] = BinaryPrimitives.ReverseEndianness(castSpan[i]);
 
             return array;
+        }
+
+        public static unsafe void CopyEndianReversedTo(ReadOnlySpan<short> values, Span<short> buffer)
+        {
+            Span<short> copies = stackalloc short[values.Length];
+            fixed (short* copyPtr = copies)
+            {
+                values.CopyTo(copies);
+                for (int i = 0; i < copies.Length; i++)
+                {
+                    copies[i] = BinaryPrimitives.ReverseEndianness(copies[i]);
+                }
+
+                copies.CopyTo(buffer);
+            }
+        }
+
+        public static unsafe void CopyEndianReversedTo(ReadOnlySpan<ushort> values, Span<ushort> buffer)
+        {
+            Span<ushort> copies = stackalloc ushort[values.Length];
+            fixed (ushort* copyPtr = copies)
+            {
+                values.CopyTo(copies);
+                for (int i = 0; i < copies.Length; i++)
+                {
+                    copies[i] = BinaryPrimitives.ReverseEndianness(copies[i]);
+                }
+
+                copies.CopyTo(buffer);
+            }
+        }
+
+        public static unsafe void CopyEndianReversedTo(ReadOnlySpan<int> values, Span<int> buffer)
+        {
+            Span<int> copies = stackalloc int[values.Length];
+            fixed (int* copyPtr = copies)
+            {
+                values.CopyTo(copies);
+                for (int i = 0; i < copies.Length; i++)
+                {
+                    copies[i] = BinaryPrimitives.ReverseEndianness(copies[i]);
+                }
+
+                copies.CopyTo(buffer);
+            }
+        }
+
+        public static unsafe void CopyEndianReversedTo(ReadOnlySpan<uint> values, Span<uint> buffer)
+        {
+            Span<uint> copies = stackalloc uint[values.Length];
+            fixed (uint* copyPtr = copies)
+            {
+                values.CopyTo(copies);
+                for (int i = 0; i < copies.Length; i++)
+                {
+                    copies[i] = BinaryPrimitives.ReverseEndianness(copies[i]);
+                }
+
+                copies.CopyTo(buffer);
+            }
+        }
+
+        public static unsafe void CopyEndianReversedTo(ReadOnlySpan<long> values, Span<long> buffer)
+        {
+            Span<long> copies = stackalloc long[values.Length];
+            fixed (long* copyPtr = copies)
+            {
+                values.CopyTo(copies);
+                for (int i = 0; i < copies.Length; i++)
+                {
+                    copies[i] = BinaryPrimitives.ReverseEndianness(copies[i]);
+                }
+
+                copies.CopyTo(buffer);
+            }
+        }
+
+        public static unsafe void CopyEndianReversedTo(ReadOnlySpan<ulong> values, Span<ulong> buffer)
+        {
+            Span<ulong> copies = stackalloc ulong[values.Length];
+            fixed (ulong* copyPtr = copies)
+            {
+                values.CopyTo(copies);
+                for (int i = 0; i < copies.Length; i++)
+                {
+                    copies[i] = BinaryPrimitives.ReverseEndianness(copies[i]);
+                }
+
+                copies.CopyTo(buffer);
+            }
+        }
+
+        public static unsafe void CopyEndianReversedTo(ReadOnlySpan<Half> values, Span<Half> buffer)
+        {
+            fixed (Half* valuesPtr = values)
+            fixed (Half* bufferPtr = buffer)
+            {
+                CopyEndianReversedTo(new ReadOnlySpan<ushort>(valuesPtr, values.Length), new Span<ushort>(bufferPtr, buffer.Length));
+            }
+        }
+
+        public static unsafe void CopyEndianReversedTo(ReadOnlySpan<float> values, Span<float> buffer)
+        {
+            fixed (float* valuesPtr = values)
+            fixed (float* bufferPtr = buffer)
+            {
+                CopyEndianReversedTo(new ReadOnlySpan<uint>(valuesPtr, values.Length), new Span<uint>(bufferPtr, buffer.Length));
+            }
+        }
+
+        public static unsafe void CopyEndianReversedTo(ReadOnlySpan<double> values, Span<double> buffer)
+        {
+            fixed (double* valuesPtr = values)
+            fixed (double* bufferPtr = buffer)
+            {
+                CopyEndianReversedTo(new ReadOnlySpan<ulong>(valuesPtr, values.Length), new Span<ulong>(bufferPtr, buffer.Length));
+            }
         }
     }
 }

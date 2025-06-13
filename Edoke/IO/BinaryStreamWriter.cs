@@ -333,6 +333,13 @@ namespace Edoke.IO
         #region Pad
 
         /// <summary>
+        /// Writes null bytes until the stream position meets the specified alignment.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Pad(int alignment)
+            => Pad(alignment, 0);
+
+        /// <summary>
         /// Writes the specified <see cref="byte"/> value until the stream position meets the specified alignment.
         /// </summary>
         public void Pad(int alignment, byte value)

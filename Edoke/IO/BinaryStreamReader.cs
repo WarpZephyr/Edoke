@@ -2280,7 +2280,7 @@ namespace Edoke.IO
         /// </summary>
         /// <param name="position">The specified position.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string GetASCII(int position)
+        public string GetASCII(long position)
             => Encoding.ASCII.GetString(Get8BitStringSpan(position));
 
         /// <summary>
@@ -2289,7 +2289,7 @@ namespace Edoke.IO
         /// <param name="position">The specified position.</param>
         /// <param name="length">The length of the fixed field.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string GetASCII(int position, int length)
+        public string GetASCII(long position, int length)
             => Encoding.ASCII.GetString(Get8BitStringSpan(position, length));
 
         /// <summary>
@@ -2333,7 +2333,7 @@ namespace Edoke.IO
         /// </summary>
         /// <param name="position">The specified position.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string GetUTF8(int position)
+        public string GetUTF8(long position)
             => Encoding.UTF8.GetString(Get8BitStringSpan(position));
 
         /// <summary>
@@ -2342,7 +2342,7 @@ namespace Edoke.IO
         /// <param name="position">The specified position.</param>
         /// <param name="length">The length of the fixed field.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string GetUTF8(int position, int length)
+        public string GetUTF8(long position, int length)
             => Encoding.UTF8.GetString(Get8BitStringSpan(position, length));
 
         /// <summary>
@@ -2386,7 +2386,7 @@ namespace Edoke.IO
         /// </summary>
         /// <param name="position">The specified position.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string GetShiftJIS(int position)
+        public string GetShiftJIS(long position)
             => EncodingHelper.ShiftJIS.GetString(Get8BitStringSpan(position));
 
         /// <summary>
@@ -2395,7 +2395,7 @@ namespace Edoke.IO
         /// <param name="position">The specified position.</param>
         /// <param name="length">The length of the fixed field.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string GetShiftJIS(int position, int length)
+        public string GetShiftJIS(long position, int length)
             => EncodingHelper.ShiftJIS.GetString(Get8BitStringSpan(position, length));
 
         /// <summary>
@@ -2443,7 +2443,7 @@ namespace Edoke.IO
         /// </summary>
         /// <param name="position">The specified position.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string GetUTF16(int position)
+        public string GetUTF16(long position)
             => BigEndian
             ? EncodingHelper.UTF16BE.GetString(Get16BitStringSpan(position))
             : EncodingHelper.UTF16LE.GetString(Get16BitStringSpan(position));
@@ -2454,7 +2454,7 @@ namespace Edoke.IO
         /// <param name="position">The specified position.</param>
         /// <param name="length">The length of the fixed field in 16-bit chars.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string GetUTF16(int position, int length)
+        public string GetUTF16(long position, int length)
             => BigEndian
             ? EncodingHelper.UTF16BE.GetString(Get16BitStringSpan(position, length))
             : EncodingHelper.UTF16LE.GetString(Get16BitStringSpan(position, length));
@@ -2500,7 +2500,7 @@ namespace Edoke.IO
         /// </summary>
         /// <param name="position">The specified position.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string GetUTF16BigEndian(int position)
+        public string GetUTF16BigEndian(long position)
             => EncodingHelper.UTF16BE.GetString(Get16BitStringSpan(position));
 
         /// <summary>
@@ -2509,7 +2509,7 @@ namespace Edoke.IO
         /// <param name="position">The specified position.</param>
         /// <param name="length">The length of the fixed field in 16-bit chars.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string GetUTF16BigEndian(int position, int length)
+        public string GetUTF16BigEndian(long position, int length)
             => EncodingHelper.UTF16BE.GetString(Get16BitStringSpan(position, length));
 
         /// <summary>
@@ -2553,7 +2553,7 @@ namespace Edoke.IO
         /// </summary>
         /// <param name="position">The specified position.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string GetUTF16LittleEndian(int position)
+        public string GetUTF16LittleEndian(long position)
             => EncodingHelper.UTF16LE.GetString(Get16BitStringSpan(position));
 
         /// <summary>
@@ -2562,7 +2562,7 @@ namespace Edoke.IO
         /// <param name="position">The specified position.</param>
         /// <param name="length">The length of the fixed field in 16-bit chars.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string GetUTF16LittleEndian(int position, int length)
+        public string GetUTF16LittleEndian(long position, int length)
             => EncodingHelper.UTF16LE.GetString(Get16BitStringSpan(position, length));
 
         /// <summary>

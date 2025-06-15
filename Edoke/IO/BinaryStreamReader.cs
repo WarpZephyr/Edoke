@@ -7,13 +7,14 @@ using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Edoke.IO
 {
     /// <summary>
     /// A binary reader for streams supporting endianness.
     /// </summary>
-    public class BinaryStreamReader : IBinaryReader, IDisposable
+    public class BinaryStreamReader : IBinaryReader, IDisposable, IAsyncDisposable
     {
         #region Constants
 
@@ -519,6 +520,30 @@ namespace Edoke.IO
             => Reader.ReadBytes(count);
 
         /// <summary>
+        /// Reads to fill the specified buffer.
+        /// </summary>
+        /// <param name="buffer">The buffer to fill.</param>
+        public void ReadBytes(Span<byte> buffer)
+            => BaseStream.ReadExactly(buffer);
+
+        /// <summary>
+        /// Reads to fill the specified buffer with the specified number of bytes.
+        /// </summary>
+        /// <param name="buffer">The buffer to fill.</param>
+        /// <param name="count">The number of bytes to fill.</param>
+        public void ReadBytes(byte[] buffer, int count)
+            => BaseStream.ReadExactly(buffer, 0, count);
+
+        /// <summary>
+        /// Reads to fill the specified buffer at the specified offset with the specified number of bytes.
+        /// </summary>
+        /// <param name="buffer">The buffer to fill.</param>
+        /// <param name="offset">The offset to fill at in the buffer.</param>
+        /// <param name="count">The number of bytes to fill.</param>
+        public void ReadBytes(byte[] buffer, int offset, int count)
+            => BaseStream.ReadExactly(buffer, offset, count);
+
+        /// <summary>
         /// Gets a <see cref="byte"/> at the specified position.
         /// </summary>
         /// <param name="position">The specified position.</param>
@@ -545,6 +570,51 @@ namespace Edoke.IO
             var values = ReadBytes(count);
             Position = origPos;
             return values;
+        }
+
+        /// <summary>
+        /// Reads from the specified position to fill the specified buffer at the specified offset with the specified number of bytes.
+        /// </summary>
+        /// <param name="position">The specified position.</param>
+        /// <param name="buffer">The buffer to fill.</param>
+        /// <param name="offset">The offset to fill at in the buffer.</param>
+        /// <param name="count">The number of bytes to fill.</param>
+        /// <returns>An <see cref="Array"/> of <see cref="byte"/>.</returns>
+        public void GetBytes(long position, byte[] buffer, int offset, int count)
+        {
+            long origPos = Position;
+            Position = position;
+            ReadBytes(buffer, offset, count);
+            Position = origPos;
+        }
+
+        /// <summary>
+        /// Reads from the specified position to fill the specified buffer with the specified number of bytes.
+        /// </summary>
+        /// <param name="position">The specified position.</param>
+        /// <param name="buffer">The buffer to fill.</param>
+        /// <param name="count">The number of bytes to fill.</param>
+        /// <returns>An <see cref="Array"/> of <see cref="byte"/>.</returns>
+        public void GetBytes(long position, byte[] buffer, int count)
+        {
+            long origPos = Position;
+            Position = position;
+            ReadBytes(buffer, 0, count);
+            Position = origPos;
+        }
+
+        /// <summary>
+        /// Reads from the specified position to fill the specified buffer with the specified number of bytes.
+        /// </summary>
+        /// <param name="position">The specified position.</param>
+        /// <param name="buffer">The buffer to fill.</param>
+        /// <returns>An <see cref="Array"/> of <see cref="byte"/>.</returns>
+        public void GetBytes(long position, Span<byte> buffer)
+        {
+            long origPos = Position;
+            Position = position;
+            ReadBytes(buffer);
+            Position = origPos;
         }
 
         /// <summary>
@@ -2610,6 +2680,13 @@ namespace Edoke.IO
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            var task = InternalStream.DisposeAsync();
+            GC.SuppressFinalize(this);
+            return task;
         }
 
         #endregion

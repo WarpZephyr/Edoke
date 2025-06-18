@@ -791,6 +791,126 @@ namespace Edoke.IO
 
         #endregion
 
+        #region Int128
+
+        /// <summary>
+        /// Writes an <see cref="Int128"/>.
+        /// </summary>
+        /// <param name="value">The value to write.</param>
+        public void WriteInt128(Int128 value)
+        {
+            if (IsEndiannessReversed)
+            {
+                Write(BinaryPrimitives.ReverseEndianness(value));
+            }
+            else
+            {
+                Write(value);
+            }
+        }
+
+        /// <summary>
+        /// Writes an <see cref="IList{T}"/> of <see cref="Int128"/>.
+        /// </summary>
+        /// <param name="values">The values to write.</param>
+        public void WriteInt128s(IList<Int128> values)
+        {
+            if (IsEndiannessReversed)
+            {
+                for (int i = 0; i < values.Count; i++)
+                {
+                    Write(BinaryPrimitives.ReverseEndianness(values[i]));
+                }
+            }
+            else
+            {
+                for (int i = 0; i < values.Count; i++)
+                {
+                    Write(values[i]);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="short"/>.
+        /// </summary>
+        /// <param name="values">The values to write.</param>
+        public void WriteInt128Span(ReadOnlySpan<Int128> values)
+        {
+            if (IsEndiannessReversed)
+            {
+                int pos = BufferOffset;
+                Position += values.Length * 16;
+                EndianHelper.CopyEndianReversedTo(values, CastHelper.ToInt128Span(Buffer[pos..], values.Length));
+            }
+            else
+            {
+                Write(values);
+            }
+        }
+
+        #endregion
+
+        #region UInt128
+
+        /// <summary>
+        /// Writes an <see cref="uInt128"/>.
+        /// </summary>
+        /// <param name="value">The value to write.</param>
+        public void WriteUInt128(UInt128 value)
+        {
+            if (IsEndiannessReversed)
+            {
+                Write(BinaryPrimitives.ReverseEndianness(value));
+            }
+            else
+            {
+                Write(value);
+            }
+        }
+
+        /// <summary>
+        /// Writes an <see cref="IList{T}"/> of <see cref="uInt128"/>.
+        /// </summary>
+        /// <param name="values">The values to write.</param>
+        public void WriteUInt128s(IList<UInt128> values)
+        {
+            if (IsEndiannessReversed)
+            {
+                for (int i = 0; i < values.Count; i++)
+                {
+                    Write(BinaryPrimitives.ReverseEndianness(values[i]));
+                }
+            }
+            else
+            {
+                for (int i = 0; i < values.Count; i++)
+                {
+                    Write(values[i]);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="short"/>.
+        /// </summary>
+        /// <param name="values">The values to write.</param>
+        public void WriteUInt128Span(ReadOnlySpan<UInt128> values)
+        {
+            if (IsEndiannessReversed)
+            {
+                int pos = BufferOffset;
+                Position += values.Length * 16;
+                EndianHelper.CopyEndianReversedTo(values, CastHelper.ToUInt128Span(Buffer[pos..], values.Length));
+            }
+            else
+            {
+                Write(values);
+            }
+        }
+
+        #endregion
+
         #region Half
 
         /// <summary>

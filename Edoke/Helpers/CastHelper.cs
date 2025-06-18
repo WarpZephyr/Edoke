@@ -60,6 +60,22 @@ namespace Edoke.Helpers
             }
         }
 
+        public static unsafe Span<Int128> ToInt128Span(Span<byte> values, int count)
+        {
+            fixed (byte* valuesPtr = values)
+            {
+                return new Span<Int128>(valuesPtr, count);
+            }
+        }
+
+        public static unsafe Span<UInt128> ToUInt128Span(Span<byte> values, int count)
+        {
+            fixed (byte* valuesPtr = values)
+            {
+                return new Span<UInt128>(valuesPtr, count);
+            }
+        }
+
         public static unsafe Span<Half> ToHalfSpan(Span<byte> values, int count)
         {
             fixed (byte* valuesPtr = values)

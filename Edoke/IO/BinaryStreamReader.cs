@@ -1133,6 +1133,172 @@ namespace Edoke.IO
 
         #endregion
 
+        #region Int128
+
+        /// <summary>
+        /// Reads a <see cref="Int128"/>.
+        /// </summary>
+        /// <returns>A <see cref="Int128"/>.</returns>
+        public Int128 ReadInt128()
+            => IsEndiannessReversed
+            ? BinaryPrimitives.ReverseEndianness(new Int128(Reader.ReadUInt64(), Reader.ReadUInt64()))
+            : new Int128(Reader.ReadUInt64(), Reader.ReadUInt64());
+
+        /// <summary>
+        /// Reads an <see cref="Array"/> of <see cref="Int128"/>.
+        /// </summary>
+        /// <param name="count">The amount to read.</param>
+        /// <returns>An <see cref="Array"/> of <see cref="Int128"/>.</returns>
+        public Int128[] ReadInt128s(int count)
+        {
+            var values = new Int128[count];
+            if (IsEndiannessReversed)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    values[i] = BinaryPrimitives.ReverseEndianness(new Int128(Reader.ReadUInt64(), Reader.ReadUInt64()));
+                }
+            }
+            else
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    values[i] = new Int128(Reader.ReadUInt64(), Reader.ReadUInt64());
+                }
+            }
+            return values;
+        }
+
+        /// <summary>
+        /// Gets a <see cref="Int128"/> at the specified position.
+        /// </summary>
+        /// <param name="position">The specified position.</param>
+        /// <returns>A <see cref="Int128"/>.</returns>
+        public Int128 GetInt128(long position)
+        {
+            long origPos = Position;
+            Position = position;
+            var value = ReadInt128();
+            Position = origPos;
+            return value;
+        }
+
+        /// <summary>
+        /// Gets an <see cref="Array"/> of <see cref="Int128"/> at the specified position.
+        /// </summary>
+        /// <param name="position">The specified position.</param>
+        /// <param name="count">The amount to get.</param>
+        /// <returns>An <see cref="Array"/> of <see cref="Int128"/>.</returns>
+        public Int128[] GetInt128s(long position, int count)
+        {
+            long origPos = Position;
+            Position = position;
+            var values = ReadInt128s(count);
+            Position = origPos;
+            return values;
+        }
+
+        /// <summary>
+        /// Reads a <see cref="Int128"/> and throws if it is not the specified option.
+        /// </summary>
+        /// <param name="option">The option to assert the value as.</param>
+        /// <returns>A <see cref="Int128"/>.</returns>
+        public Int128 AssertInt128(Int128 option)
+            => AssertHelper.Assert(ReadInt128(), nameof(Int128), WholeNumberFormat, option);
+
+        /// <summary>
+        /// Reads a <see cref="Int128"/> and throws if it is not one of the specified options.
+        /// </summary>
+        /// <param name="options">The options to assert the value as.</param>
+        /// <returns>A <see cref="Int128"/>.</returns>
+        public Int128 AssertInt128(ReadOnlySpan<Int128> options)
+            => AssertHelper.Assert(ReadInt128(), nameof(Int128), WholeNumberFormat, options);
+
+        #endregion
+
+        #region UInt128
+
+        /// <summary>
+        /// Reads a <see cref="UInt128"/>.
+        /// </summary>
+        /// <returns>A <see cref="UInt128"/>.</returns>
+        public UInt128 ReadUInt128()
+            => IsEndiannessReversed
+            ? BinaryPrimitives.ReverseEndianness(new UInt128(Reader.ReadUInt64(), Reader.ReadUInt64()))
+            : new UInt128(Reader.ReadUInt64(), Reader.ReadUInt64());
+
+        /// <summary>
+        /// Reads an <see cref="Array"/> of <see cref="UInt128"/>.
+        /// </summary>
+        /// <param name="count">The amount to read.</param>
+        /// <returns>An <see cref="Array"/> of <see cref="UInt128"/>.</returns>
+        public UInt128[] ReadUInt128s(int count)
+        {
+            var values = new UInt128[count];
+            if (IsEndiannessReversed)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    values[i] = BinaryPrimitives.ReverseEndianness(new UInt128(Reader.ReadUInt64(), Reader.ReadUInt64()));
+                }
+            }
+            else
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    values[i] = new UInt128(Reader.ReadUInt64(), Reader.ReadUInt64());
+                }
+            }
+            return values;
+        }
+
+        /// <summary>
+        /// Gets a <see cref="UInt128"/> at the specified position.
+        /// </summary>
+        /// <param name="position">The specified position.</param>
+        /// <returns>A <see cref="UInt128"/>.</returns>
+        public UInt128 GetUInt128(long position)
+        {
+            long origPos = Position;
+            Position = position;
+            var value = ReadUInt128();
+            Position = origPos;
+            return value;
+        }
+
+        /// <summary>
+        /// Gets an <see cref="Array"/> of <see cref="UInt128"/> at the specified position.
+        /// </summary>
+        /// <param name="position">The specified position.</param>
+        /// <param name="count">The amount to get.</param>
+        /// <returns>An <see cref="Array"/> of <see cref="UInt128"/>.</returns>
+        public UInt128[] GetUInt128s(long position, int count)
+        {
+            long origPos = Position;
+            Position = position;
+            var values = ReadUInt128s(count);
+            Position = origPos;
+            return values;
+        }
+
+        /// <summary>
+        /// Reads a <see cref="UInt128"/> and throws if it is not the specified option.
+        /// </summary>
+        /// <param name="option">The option to assert the value as.</param>
+        /// <returns>A <see cref="UInt128"/>.</returns>
+        public UInt128 AssertUInt128(UInt128 option)
+            => AssertHelper.Assert(ReadUInt128(), nameof(UInt128), WholeNumberFormat, option);
+
+        /// <summary>
+        /// Reads a <see cref="UInt128"/> and throws if it is not one of the specified options.
+        /// </summary>
+        /// <param name="options">The options to assert the value as.</param>
+        /// <returns>A <see cref="UInt128"/>.</returns>
+        public UInt128 AssertUInt128(ReadOnlySpan<UInt128> options)
+            => AssertHelper.Assert(ReadUInt128(), nameof(UInt128), WholeNumberFormat, options);
+
+        #endregion
+
         #region Half
 
         /// <summary>

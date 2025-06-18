@@ -1060,6 +1060,192 @@ namespace Edoke.IO
 
         #endregion
 
+        #region Int128
+
+        /// <summary>
+        /// Writes a <see cref="Int128"/>.
+        /// </summary>
+        /// <param name="value">The value to write.</param>
+        public void WriteInt128(Int128 value)
+        {
+            if (IsEndiannessReversed)
+            {
+                value = BinaryPrimitives.ReverseEndianness(value);
+                Writer.Write((ulong)value);
+                Writer.Write((ulong)(value >> 64));
+            }
+            else
+            {
+                Writer.Write((ulong)value);
+                Writer.Write((ulong)(value >> 64));
+            }
+        }
+
+        /// <summary>
+        /// Writes an <see cref="IList{T}"/> of <see cref="Int128"/>.
+        /// </summary>
+        /// <param name="values">The values to write.</param>
+        public void WriteInt128s(IList<Int128> values)
+        {
+            if (IsEndiannessReversed)
+            {
+                for (int i = 0; i < values.Count; i++)
+                {
+                    var value = BinaryPrimitives.ReverseEndianness(values[i]);
+                    Writer.Write((ulong)value);
+                    Writer.Write((ulong)(value >> 64));
+                }
+            }
+            else
+            {
+                for (int i = 0; i < values.Count; i++)
+                {
+                    Writer.Write((ulong)values[i]);
+                    Writer.Write((ulong)(values[i] >> 64));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="Int128"/>.
+        /// </summary>
+        /// <param name="values">The values to write.</param>
+        public void WriteInt128Span(ReadOnlySpan<Int128> values)
+        {
+            if (IsEndiannessReversed)
+            {
+                for (int i = 0; i < values.Length; i++)
+                {
+                    var value = BinaryPrimitives.ReverseEndianness(values[i]);
+                    Writer.Write((ulong)value);
+                    Writer.Write((ulong)(value >> 64));
+                }
+            }
+            else
+            {
+                for (int i = 0; i < values.Length; i++)
+                {
+                    Writer.Write((ulong)values[i]);
+                    Writer.Write((ulong)(values[i] >> 64));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Reserves a <see cref="Int128"/> to fill at a later time.
+        /// </summary>
+        /// <param name="name">The name of the reservation.</param>
+        public void ReserveInt128(string name)
+            => Reserve(name, nameof(Int128), 16);
+
+        /// <summary>
+        /// Fills a <see cref="Int128"/> reservation.
+        /// </summary>
+        /// <param name="name">The name of the reservation.</param>
+        /// <param name="value">The fill value.</param>
+        public void FillInt128(string name, Int128 value)
+        {
+            long origPos = Position;
+            Position = Fill(name, nameof(Int128));
+            WriteInt128(value);
+            Position = origPos;
+        }
+
+        #endregion
+
+        #region UInt128
+
+        /// <summary>
+        /// Writes a <see cref="UInt128"/>.
+        /// </summary>
+        /// <param name="value">The value to write.</param>
+        public void WriteUInt128(UInt128 value)
+        {
+            if (IsEndiannessReversed)
+            {
+                value = BinaryPrimitives.ReverseEndianness(value);
+                Writer.Write((ulong)value);
+                Writer.Write((ulong)(value >> 64));
+            }
+            else
+            {
+                Writer.Write((ulong)value);
+                Writer.Write((ulong)(value >> 64));
+            }
+        }
+
+        /// <summary>
+        /// Writes an <see cref="IList{T}"/> of <see cref="UInt128"/>.
+        /// </summary>
+        /// <param name="values">The values to write.</param>
+        public void WriteUInt128s(IList<UInt128> values)
+        {
+            if (IsEndiannessReversed)
+            {
+                for (int i = 0; i < values.Count; i++)
+                {
+                    var value = BinaryPrimitives.ReverseEndianness(values[i]);
+                    Writer.Write((ulong)value);
+                    Writer.Write((ulong)(value >> 64));
+                }
+            }
+            else
+            {
+                for (int i = 0; i < values.Count; i++)
+                {
+                    Writer.Write((ulong)values[i]);
+                    Writer.Write((ulong)(values[i] >> 64));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes a <see cref="ReadOnlySpan{T}"/> of <see cref="UInt128"/>.
+        /// </summary>
+        /// <param name="values">The values to write.</param>
+        public void WriteUInt128Span(ReadOnlySpan<UInt128> values)
+        {
+            if (IsEndiannessReversed)
+            {
+                for (int i = 0; i < values.Length; i++)
+                {
+                    var value = BinaryPrimitives.ReverseEndianness(values[i]);
+                    Writer.Write((ulong)value);
+                    Writer.Write((ulong)(value >> 64));
+                }
+            }
+            else
+            {
+                for (int i = 0; i < values.Length; i++)
+                {
+                    Writer.Write((ulong)values[i]);
+                    Writer.Write((ulong)(values[i] >> 64));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Reserves a <see cref="UInt128"/> to fill at a later time.
+        /// </summary>
+        /// <param name="name">The name of the reservation.</param>
+        public void ReserveUInt128(string name)
+            => Reserve(name, nameof(UInt128), 16);
+
+        /// <summary>
+        /// Fills a <see cref="UInt128"/> reservation.
+        /// </summary>
+        /// <param name="name">The name of the reservation.</param>
+        /// <param name="value">The fill value.</param>
+        public void FillUInt128(string name, UInt128 value)
+        {
+            long origPos = Position;
+            Position = Fill(name, nameof(UInt128));
+            WriteUInt128(value);
+            Position = origPos;
+        }
+
+        #endregion
+
         #region Half
 
         /// <summary>

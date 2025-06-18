@@ -94,6 +94,34 @@ namespace Edoke.Helpers
         }
 
         /// <summary>
+        /// Copies a <see cref="Int128"/> span with reversed endianness.
+        /// </summary>
+        /// <param name="span">The span to copy with reversed endianness.</param>
+        /// <returns>A copy with reversed endianness.</returns>
+        public static Int128[] CopyEndianReversed(ReadOnlySpan<Int128> span)
+        {
+            int count = span.Length;
+            var array = new Int128[count];
+            for (int i = 0; i < count; i++)
+                array[i] = BinaryPrimitives.ReverseEndianness(span[i]);
+            return array;
+        }
+
+        /// <summary>
+        /// Copies a <see cref="UInt128"/> span with reversed endianness.
+        /// </summary>
+        /// <param name="span">The span to copy with reversed endianness.</param>
+        /// <returns>A copy with reversed endianness.</returns>
+        public static UInt128[] CopyEndianReversed(ReadOnlySpan<UInt128> span)
+        {
+            int count = span.Length;
+            var array = new UInt128[count];
+            for (int i = 0; i < count; i++)
+                array[i] = BinaryPrimitives.ReverseEndianness(span[i]);
+            return array;
+        }
+
+        /// <summary>
         /// Copies a <see cref="Half"/> span with reversed endianness.
         /// </summary>
         /// <param name="span">The span to copy with reversed endianness.</param>
@@ -223,6 +251,36 @@ namespace Edoke.Helpers
         {
             Span<ulong> copies = stackalloc ulong[values.Length];
             fixed (ulong* copyPtr = copies)
+            {
+                values.CopyTo(copies);
+                for (int i = 0; i < copies.Length; i++)
+                {
+                    copies[i] = BinaryPrimitives.ReverseEndianness(copies[i]);
+                }
+
+                copies.CopyTo(buffer);
+            }
+        }
+
+        public static unsafe void CopyEndianReversedTo(ReadOnlySpan<Int128> values, Span<Int128> buffer)
+        {
+            Span<Int128> copies = stackalloc Int128[values.Length];
+            fixed (Int128* copyPtr = copies)
+            {
+                values.CopyTo(copies);
+                for (int i = 0; i < copies.Length; i++)
+                {
+                    copies[i] = BinaryPrimitives.ReverseEndianness(copies[i]);
+                }
+
+                copies.CopyTo(buffer);
+            }
+        }
+
+        public static unsafe void CopyEndianReversedTo(ReadOnlySpan<UInt128> values, Span<UInt128> buffer)
+        {
+            Span<UInt128> copies = stackalloc UInt128[values.Length];
+            fixed (UInt128* copyPtr = copies)
             {
                 values.CopyTo(copies);
                 for (int i = 0; i < copies.Length; i++)

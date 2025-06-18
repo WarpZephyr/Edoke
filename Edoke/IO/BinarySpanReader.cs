@@ -1114,6 +1114,168 @@ namespace Edoke.IO
 
         #endregion
 
+        #region Int128
+
+        /// <summary>
+        /// Reads a <see cref="Int128"/>.
+        /// </summary>
+        /// <returns>A <see cref="Int128"/>.</returns>
+        public Int128 ReadInt128()
+            => IsEndiannessReversed
+            ? BinaryPrimitives.ReverseEndianness(Read<Int128>())
+            : Read<Int128>();
+
+        /// <summary>
+        /// Reads a <see cref="ReadOnlySpan{T}"/> of <see cref="Int128"/>.
+        /// </summary>
+        /// <param name="count">The amount to read.</param>
+        /// <returns>A <see cref="ReadOnlySpan{T}"/> of <see cref="Int128"/>.</returns>
+        public ReadOnlySpan<Int128> ReadInt128Span(int count)
+            => IsEndiannessReversed
+            ? EndianHelper.CopyEndianReversed(ReadSpan<Int128>(count))
+            : ReadSpan<Int128>(count);
+
+        /// <summary>
+        /// Reads an <see cref="Array"/> of <see cref="Int128"/>.
+        /// </summary>
+        /// <param name="count">The amount to read.</param>
+        /// <returns>An <see cref="Array"/> of <see cref="Int128"/>.</returns>
+        public Int128[] ReadInt128s(int count)
+            => IsEndiannessReversed
+            ? EndianHelper.CopyEndianReversed(ReadSpan<Int128>(count))
+            : ReadSpan<Int128>(count).ToArray();
+
+        /// <summary>
+        /// Gets a <see cref="Int128"/> at the specified position.
+        /// </summary>
+        /// <param name="position">The specified position.</param>
+        /// <returns>A <see cref="Int128"/>.</returns>
+        public readonly Int128 GetInt128(int position)
+            => IsEndiannessReversed
+            ? BinaryPrimitives.ReverseEndianness(Get<Int128>(position))
+            : Get<Int128>(position);
+
+        /// <summary>
+        /// Gets a <see cref="ReadOnlySpan{T}"/> of <see cref="Int128"/> at the specified position.
+        /// </summary>
+        /// <param name="position">The specified position.</param>
+        /// <param name="count">The amount to get.</param>
+        /// <returns>A <see cref="ReadOnlySpan{T}"/> of <see cref="Int128"/>.</returns>
+        public readonly ReadOnlySpan<Int128> GetInt128Span(int position, int count)
+            => IsEndiannessReversed
+            ? EndianHelper.CopyEndianReversed(GetSpan<Int128>(position, count))
+            : GetSpan<Int128>(position, count);
+
+        /// <summary>
+        /// Gets an <see cref="Array"/> of <see cref="Int128"/> at the specified position.
+        /// </summary>
+        /// <param name="position">The specified position.</param>
+        /// <param name="count">The amount to get.</param>
+        /// <returns>An <see cref="Array"/> of <see cref="Int128"/>.</returns>
+        public readonly Int128[] GetInt128s(int position, int count)
+            => IsEndiannessReversed
+            ? EndianHelper.CopyEndianReversed(GetSpan<Int128>(position, count))
+            : GetSpan<Int128>(position, count).ToArray();
+
+        /// <summary>
+        /// Reads a <see cref="Int128"/> and throws if it is not the specified option.
+        /// </summary>
+        /// <param name="option">The option to assert the value as.</param>
+        /// <returns>A <see cref="Int128"/>.</returns>
+        public Int128 AssertInt128(Int128 option)
+            => AssertHelper.Assert(ReadInt128(), nameof(Int128), WholeNumberFormat, option);
+
+        /// <summary>
+        /// Reads a <see cref="Int128"/> and throws if it is not one of the specified options.
+        /// </summary>
+        /// <param name="options">The options to assert the value as.</param>
+        /// <returns>A <see cref="Int128"/>.</returns>
+        public Int128 AssertInt128(ReadOnlySpan<Int128> options)
+            => AssertHelper.Assert(ReadInt128(), nameof(Int128), WholeNumberFormat, options);
+
+        #endregion
+
+        #region UInt128
+
+        /// <summary>
+        /// Reads a <see cref="UInt128"/>.
+        /// </summary>
+        /// <returns>A <see cref="UInt128"/>.</returns>
+        public UInt128 ReadUInt128()
+            => IsEndiannessReversed
+            ? BinaryPrimitives.ReverseEndianness(Read<UInt128>())
+            : Read<UInt128>();
+
+        /// <summary>
+        /// Reads a <see cref="ReadOnlySpan{T}"/> of <see cref="UInt128"/>.
+        /// </summary>
+        /// <param name="count">The amount to read.</param>
+        /// <returns>A <see cref="ReadOnlySpan{T}"/> of <see cref="UInt128"/>.</returns>
+        public ReadOnlySpan<UInt128> ReadUInt128Span(int count)
+            => IsEndiannessReversed
+            ? EndianHelper.CopyEndianReversed(ReadSpan<UInt128>(count))
+            : ReadSpan<UInt128>(count);
+
+        /// <summary>
+        /// Reads an <see cref="Array"/> of <see cref="UInt128"/>.
+        /// </summary>
+        /// <param name="count">The amount to read.</param>
+        /// <returns>An <see cref="Array"/> of <see cref="UInt128"/>.</returns>
+        public UInt128[] ReadUInt128s(int count)
+            => IsEndiannessReversed
+            ? EndianHelper.CopyEndianReversed(ReadSpan<UInt128>(count))
+            : ReadSpan<UInt128>(count).ToArray();
+
+        /// <summary>
+        /// Gets a <see cref="UInt128"/> at the specified position.
+        /// </summary>
+        /// <param name="position">The specified position.</param>
+        /// <returns>A <see cref="UInt128"/>.</returns>
+        public readonly UInt128 GetUInt128(int position)
+            => IsEndiannessReversed
+            ? BinaryPrimitives.ReverseEndianness(Get<UInt128>(position))
+            : Get<UInt128>(position);
+
+        /// <summary>
+        /// Gets a <see cref="ReadOnlySpan{T}"/> of <see cref="UInt128"/> at the specified position.
+        /// </summary>
+        /// <param name="position">The specified position.</param>
+        /// <param name="count">The amount to get.</param>
+        /// <returns>A <see cref="ReadOnlySpan{T}"/> of <see cref="UInt128"/>.</returns>
+        public readonly ReadOnlySpan<UInt128> GetUInt128Span(int position, int count)
+            => IsEndiannessReversed
+            ? EndianHelper.CopyEndianReversed(GetSpan<UInt128>(position, count))
+            : GetSpan<UInt128>(position, count);
+
+        /// <summary>
+        /// Gets an <see cref="Array"/> of <see cref="UInt128"/> at the specified position.
+        /// </summary>
+        /// <param name="position">The specified position.</param>
+        /// <param name="count">The amount to get.</param>
+        /// <returns>An <see cref="Array"/> of <see cref="UInt128"/>.</returns>
+        public readonly UInt128[] GetUInt128s(int position, int count)
+            => IsEndiannessReversed
+            ? EndianHelper.CopyEndianReversed(GetSpan<UInt128>(position, count))
+            : GetSpan<UInt128>(position, count).ToArray();
+
+        /// <summary>
+        /// Reads a <see cref="UInt128"/> and throws if it is not the specified option.
+        /// </summary>
+        /// <param name="option">The option to assert the value as.</param>
+        /// <returns>A <see cref="UInt128"/>.</returns>
+        public UInt128 AssertUInt128(UInt128 option)
+            => AssertHelper.Assert(ReadUInt128(), nameof(UInt128), WholeNumberFormat, option);
+
+        /// <summary>
+        /// Reads a <see cref="UInt128"/> and throws if it is not one of the specified options.
+        /// </summary>
+        /// <param name="options">The options to assert the value as.</param>
+        /// <returns>A <see cref="UInt128"/>.</returns>
+        public UInt128 AssertUInt128(ReadOnlySpan<UInt128> options)
+            => AssertHelper.Assert(ReadUInt128(), nameof(UInt128), WholeNumberFormat, options);
+
+        #endregion
+
         #region Half
 
         /// <summary>

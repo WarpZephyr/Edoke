@@ -2596,10 +2596,24 @@ namespace Edoke.IO
         }
 
         public Color ReadArgb()
-            => Color.FromArgb(ReadInt32());
+        {
+            var span = ReadSpan<byte>(4);
+            byte a = span[0];
+            byte r = span[1];
+            byte g = span[2];
+            byte b = span[3];
+            return Color.FromArgb(a, r, g, b);
+        }
 
         public Color ReadBgra()
-            => Color.FromArgb(BinaryPrimitives.ReverseEndianness(ReadInt32()));
+        {
+            var span = ReadSpan<byte>(4);
+            byte b = span[0];
+            byte g = span[1];
+            byte r = span[2];
+            byte a = span[3];
+            return Color.FromArgb(a, r, g, b);
+        }
 
         public Color ReadAbgr()
         {

@@ -2305,14 +2305,26 @@ namespace Edoke.IO
         /// </summary>
         /// <returns>A <see cref="Color"/>.</returns>
         public Color ReadArgb()
-            => Color.FromArgb(ReadInt32());
+        {
+            byte a = Reader.ReadByte();
+            byte r = Reader.ReadByte();
+            byte g = Reader.ReadByte();
+            byte b = Reader.ReadByte();
+            return Color.FromArgb(a, r, g, b);
+        }
 
         /// <summary>
         /// Read a <see cref="Color"/> in BGRA order.
         /// </summary>
         /// <returns>A <see cref="Color"/>.</returns>
         public Color ReadBgra()
-            => Color.FromArgb(BinaryPrimitives.ReverseEndianness(ReadInt32()));
+        {
+            byte b = Reader.ReadByte();
+            byte g = Reader.ReadByte();
+            byte r = Reader.ReadByte();
+            byte a = Reader.ReadByte();
+            return Color.FromArgb(a, r, g, b);
+        }
 
         /// <summary>
         /// Read a <see cref="Color"/> in ABGR order.

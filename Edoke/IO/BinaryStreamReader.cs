@@ -2411,9 +2411,19 @@ namespace Edoke.IO
         /// Read a <see cref="Span{T}"/> of <see cref="byte"/> representing an 8-bit fixed-length <see cref="string"/>.
         /// </summary>
         /// <param name="length">The length of the fixed field.</param>
+        /// <param name="terminated">Whether or not to stop the string at a null-terminator if present.</param>
         /// <returns>A <see cref="Span{T}"/> of <see cref="byte"/>.</returns>
-        private ReadOnlySpan<byte> Read8BitStringSpan(int length)
-            => ReadDirect(length);
+        private ReadOnlySpan<byte> Read8BitStringSpan(int length, bool terminated)
+        {
+            var span = ReadDirect(length);
+            if (terminated)
+            {
+                int strLen = StringLengthHelper.Strlen(span);
+                span = span[..strLen];
+            }
+
+            return span;
+        }
 
         /// <summary>
         /// Get a <see cref="byte"/> <see cref="Array"/> representing an 8-bit null-terminated <see cref="string"/> at the specified position.
@@ -2434,12 +2444,13 @@ namespace Edoke.IO
         /// </summary>
         /// <param name="position">The specified position.</param>
         /// <param name="length">The length of the fixed field.</param>
+        /// <param name="terminated">Whether or not to stop the string at a null-terminator if present.</param>
         /// <returns>A <see cref="Span{T}"/> of <see cref="byte"/>.</returns>
-        private ReadOnlySpan<byte> Get8BitStringSpan(long position, int length)
+        private ReadOnlySpan<byte> Get8BitStringSpan(long position, int length, bool terminated)
         {
             long origPos = Position;
             Position = position;
-            var values = Read8BitStringSpan(length);
+            var values = Read8BitStringSpan(length, terminated);
             Position = origPos;
             return values;
         }
@@ -2471,9 +2482,19 @@ namespace Edoke.IO
         /// Read a <see cref="Span{T}"/> of <see cref="byte"/> representing a 16-bit fixed-length <see cref="string"/>.
         /// </summary>
         /// <param name="length">The length of the fixed field.</param>
+        /// <param name="terminated">Whether or not to stop the string at a null-terminator if present.</param>
         /// <returns>A <see cref="Span{T}"/> of <see cref="byte"/>.</returns>
-        private ReadOnlySpan<byte> Read16BitStringSpan(int length)
-            => ReadDirect(length);
+        private ReadOnlySpan<byte> Read16BitStringSpan(int length, bool terminated)
+        {
+            var span = ReadDirect(length);
+            if (terminated)
+            {
+                int strLen = StringLengthHelper.WStrlen(span);
+                span = span[..strLen];
+            }
+
+            return span;
+        }
 
         /// <summary>
         /// Get a <see cref="byte"/> <see cref="Array"/> representing a 16-bit null-terminated <see cref="string"/> at the specified position.
@@ -2494,12 +2515,13 @@ namespace Edoke.IO
         /// </summary>
         /// <param name="position">The specified position.</param>
         /// <param name="length">The length of the fixed field.</param>
+        /// <param name="terminated">Whether or not to stop the string at a null-terminator if present.</param>
         /// <returns>A <see cref="Span{T}"/> of <see cref="byte"/>.</returns>
-        private ReadOnlySpan<byte> Get16BitStringSpan(long position, int length)
+        private ReadOnlySpan<byte> Get16BitStringSpan(long position, int length, bool terminated)
         {
             long origPos = Position;
             Position = position;
-            var values = Read16BitStringSpan(length);
+            var values = Read16BitStringSpan(length, terminated);
             Position = origPos;
             return values;
         }
@@ -2519,9 +2541,10 @@ namespace Edoke.IO
         /// Read a fixed-length ASCII encoded <see cref="string"/>.
         /// </summary>
         /// <param name="length">The length of the fixed field.</param>
+        /// <param name="terminated">Whether or not to stop the string at a null-terminator if present.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string ReadASCII(int length)
-            => Encoding.ASCII.GetString(Read8BitStringSpan(length));
+        public string ReadASCII(int length, bool terminated = true)
+            => Encoding.ASCII.GetString(Read8BitStringSpan(length, terminated));
 
         /// <summary>
         /// Get a null-terminated ASCII encoded <see cref="string"/> at the specified position.
@@ -2536,9 +2559,10 @@ namespace Edoke.IO
         /// </summary>
         /// <param name="position">The specified position.</param>
         /// <param name="length">The length of the fixed field.</param>
+        /// <param name="terminated">Whether or not to stop the string at a null-terminator if present.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string GetASCII(long position, int length)
-            => Encoding.ASCII.GetString(Get8BitStringSpan(position, length));
+        public string GetASCII(long position, int length, bool terminated = true)
+            => Encoding.ASCII.GetString(Get8BitStringSpan(position, length, terminated));
 
         /// <summary>
         /// Reads a ASCII encoded <see cref="string"/> and throws if it is not the specified option.
@@ -2546,7 +2570,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertASCII(string option)
-            => AssertHelper.Assert(ReadASCII(option.Length), "ASCII", option);
+            => AssertHelper.Assert(ReadASCII(option.Length, false), "ASCII", option);
 
         /// <summary>
         /// Reads a ASCII encoded <see cref="string"/> and throws if it is not one of the specified options.
@@ -2555,7 +2579,7 @@ namespace Edoke.IO
         /// <returns>A <see cref="string"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string AssertASCII(ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadASCII(options[0].Length), "ASCII", options);
+            => AssertHelper.Assert(ReadASCII(options[0].Length, false), "ASCII", options);
 
         #endregion
 
@@ -2572,9 +2596,10 @@ namespace Edoke.IO
         /// Read a fixed-length UTF8 encoded <see cref="string"/>.
         /// </summary>
         /// <param name="length">The length of the fixed field.</param>
+        /// <param name="terminated">Whether or not to stop the string at a null-terminator if present.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string ReadUTF8(int length)
-            => Encoding.UTF8.GetString(Read8BitStringSpan(length));
+        public string ReadUTF8(int length, bool terminated = true)
+            => Encoding.UTF8.GetString(Read8BitStringSpan(length, terminated));
 
         /// <summary>
         /// Get a null-terminated UTF8 encoded <see cref="string"/> at the specified position.
@@ -2589,9 +2614,10 @@ namespace Edoke.IO
         /// </summary>
         /// <param name="position">The specified position.</param>
         /// <param name="length">The length of the fixed field.</param>
+        /// <param name="terminated">Whether or not to stop the string at a null-terminator if present.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string GetUTF8(long position, int length)
-            => Encoding.UTF8.GetString(Get8BitStringSpan(position, length));
+        public string GetUTF8(long position, int length, bool terminated = true)
+            => Encoding.UTF8.GetString(Get8BitStringSpan(position, length, terminated));
 
         /// <summary>
         /// Reads a UTF8 encoded <see cref="string"/> and throws if it is not the specified option.
@@ -2599,7 +2625,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF8(string option)
-            => AssertHelper.Assert(ReadUTF8(option.Length), "UTF8", option);
+            => AssertHelper.Assert(ReadUTF8(option.Length, false), "UTF8", option);
 
         /// <summary>
         /// Reads a UTF8 encoded <see cref="string"/> and throws if it is not one of the specified options.
@@ -2608,7 +2634,7 @@ namespace Edoke.IO
         /// <returns>A <see cref="string"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string AssertUTF8(ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadUTF8(options[0].Length), "UTF8", options);
+            => AssertHelper.Assert(ReadUTF8(options[0].Length, false), "UTF8", options);
 
         #endregion
 
@@ -2625,9 +2651,10 @@ namespace Edoke.IO
         /// Read a fixed-length ShiftJIS encoded <see cref="string"/>.
         /// </summary>
         /// <param name="length">The length of the fixed field.</param>
+        /// <param name="terminated">Whether or not to stop the string at a null-terminator if present.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string ReadShiftJIS(int length)
-            => EncodingHelper.ShiftJIS.GetString(Read8BitStringSpan(length));
+        public string ReadShiftJIS(int length, bool terminated = true)
+            => EncodingHelper.ShiftJIS.GetString(Read8BitStringSpan(length, terminated));
 
         /// <summary>
         /// Get a null-terminated ShiftJIS encoded <see cref="string"/> at the specified position.
@@ -2642,9 +2669,10 @@ namespace Edoke.IO
         /// </summary>
         /// <param name="position">The specified position.</param>
         /// <param name="length">The length of the fixed field.</param>
+        /// <param name="terminated">Whether or not to stop the string at a null-terminator if present.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string GetShiftJIS(long position, int length)
-            => EncodingHelper.ShiftJIS.GetString(Get8BitStringSpan(position, length));
+        public string GetShiftJIS(long position, int length, bool terminated = true)
+            => EncodingHelper.ShiftJIS.GetString(Get8BitStringSpan(position, length, terminated));
 
         /// <summary>
         /// Reads a ShiftJIS encoded <see cref="string"/> and throws if it is not the specified option.
@@ -2652,7 +2680,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertShiftJIS(string option)
-            => AssertHelper.Assert(ReadShiftJIS(option.Length), "ShiftJIS", option);
+            => AssertHelper.Assert(ReadShiftJIS(option.Length, false), "ShiftJIS", option);
 
         /// <summary>
         /// Reads a ShiftJIS encoded <see cref="string"/> and throws if it is not one of the specified options.
@@ -2661,7 +2689,7 @@ namespace Edoke.IO
         /// <returns>A <see cref="string"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string AssertShiftJIS(ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadShiftJIS(options[0].Length), "ShiftJIS", options);
+            => AssertHelper.Assert(ReadShiftJIS(options[0].Length, false), "ShiftJIS", options);
 
         #endregion
 
@@ -2680,11 +2708,12 @@ namespace Edoke.IO
         /// Read a fixed-length UTF16 encoded <see cref="string"/>.
         /// </summary>
         /// <param name="length">The length of the fixed field in 16-bit chars.</param>
+        /// <param name="terminated">Whether or not to stop the string at a null-terminator if present.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string ReadUTF16(int length)
+        public string ReadUTF16(int length, bool terminated = true)
             => BigEndian
-            ? EncodingHelper.UTF16BE.GetString(Read16BitStringSpan(length))
-            : EncodingHelper.UTF16LE.GetString(Read16BitStringSpan(length));
+            ? EncodingHelper.UTF16BE.GetString(Read16BitStringSpan(length, terminated))
+            : EncodingHelper.UTF16LE.GetString(Read16BitStringSpan(length, terminated));
 
         /// <summary>
         /// Get a null-terminated UTF16 encoded <see cref="string"/> at the specified position.
@@ -2701,11 +2730,12 @@ namespace Edoke.IO
         /// </summary>
         /// <param name="position">The specified position.</param>
         /// <param name="length">The length of the fixed field in 16-bit chars.</param>
+        /// <param name="terminated">Whether or not to stop the string at a null-terminator if present.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string GetUTF16(long position, int length)
+        public string GetUTF16(long position, int length, bool terminated = true)
             => BigEndian
-            ? EncodingHelper.UTF16BE.GetString(Get16BitStringSpan(position, length))
-            : EncodingHelper.UTF16LE.GetString(Get16BitStringSpan(position, length));
+            ? EncodingHelper.UTF16BE.GetString(Get16BitStringSpan(position, length, terminated))
+            : EncodingHelper.UTF16LE.GetString(Get16BitStringSpan(position, length, terminated));
 
         /// <summary>
         /// Reads a UTF16 encoded <see cref="string"/> and throws if it is not the specified option.
@@ -2713,7 +2743,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF16(string option)
-            => AssertHelper.Assert(ReadUTF16(option.Length), "UTF16", option);
+            => AssertHelper.Assert(ReadUTF16(option.Length, false), "UTF16", option);
 
         /// <summary>
         /// Reads a UTF16 encoded <see cref="string"/> and throws if it is not one of the specified options.
@@ -2722,7 +2752,7 @@ namespace Edoke.IO
         /// <returns>A <see cref="string"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string AssertUTF16(ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadUTF16(options[0].Length), "UTF16", options);
+            => AssertHelper.Assert(ReadUTF16(options[0].Length, false), "UTF16", options);
 
         #endregion
 
@@ -2739,9 +2769,10 @@ namespace Edoke.IO
         /// Read a fixed-length big-endian UTF16 encoded <see cref="string"/>.
         /// </summary>
         /// <param name="length">The length of the fixed field in 16-bit chars.</param>
+        /// <param name="terminated">Whether or not to stop the string at a null-terminator if present.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string ReadUTF16BigEndian(int length)
-            => EncodingHelper.UTF16BE.GetString(Read16BitStringSpan(length));
+        public string ReadUTF16BigEndian(int length, bool terminated = true)
+            => EncodingHelper.UTF16BE.GetString(Read16BitStringSpan(length, terminated));
 
         /// <summary>
         /// Get a null-terminated big-endian UTF16 encoded <see cref="string"/> at the specified position.
@@ -2756,9 +2787,10 @@ namespace Edoke.IO
         /// </summary>
         /// <param name="position">The specified position.</param>
         /// <param name="length">The length of the fixed field in 16-bit chars.</param>
+        /// <param name="terminated">Whether or not to stop the string at a null-terminator if present.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string GetUTF16BigEndian(long position, int length)
-            => EncodingHelper.UTF16BE.GetString(Get16BitStringSpan(position, length));
+        public string GetUTF16BigEndian(long position, int length, bool terminated = true)
+            => EncodingHelper.UTF16BE.GetString(Get16BitStringSpan(position, length, terminated));
 
         /// <summary>
         /// Reads a big-endian UTF16 encoded <see cref="string"/> and throws if it is not the specified option.
@@ -2766,7 +2798,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF16BigEndian(string option)
-            => AssertHelper.Assert(ReadUTF16BigEndian(option.Length), "UTF16BE", option);
+            => AssertHelper.Assert(ReadUTF16BigEndian(option.Length, false), "UTF16BE", option);
 
         /// <summary>
         /// Reads a big-endian UTF16 encoded <see cref="string"/> and throws if it is not one of the specified options.
@@ -2775,7 +2807,7 @@ namespace Edoke.IO
         /// <returns>A <see cref="string"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string AssertUTF16BigEndian(ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadUTF16BigEndian(options[0].Length), "UTF16BE", options);
+            => AssertHelper.Assert(ReadUTF16BigEndian(options[0].Length, false), "UTF16BE", options);
 
         #endregion
 
@@ -2792,9 +2824,10 @@ namespace Edoke.IO
         /// Read a fixed-length little-endian UTF16 encoded <see cref="string"/>.
         /// </summary>
         /// <param name="length">The length of the fixed field in 16-bit chars.</param>
+        /// <param name="terminated">Whether or not to stop the string at a null-terminator if present.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string ReadUTF16LittleEndian(int length)
-            => EncodingHelper.UTF16LE.GetString(Read16BitStringSpan(length));
+        public string ReadUTF16LittleEndian(int length, bool terminated = true)
+            => EncodingHelper.UTF16LE.GetString(Read16BitStringSpan(length, terminated));
 
         /// <summary>
         /// Get a null-terminated little-endian UTF16 encoded <see cref="string"/> at the specified position.
@@ -2809,9 +2842,10 @@ namespace Edoke.IO
         /// </summary>
         /// <param name="position">The specified position.</param>
         /// <param name="length">The length of the fixed field in 16-bit chars.</param>
+        /// <param name="terminated">Whether or not to stop the string at a null-terminator if present.</param>
         /// <returns>A <see cref="string"/>.</returns>
-        public string GetUTF16LittleEndian(long position, int length)
-            => EncodingHelper.UTF16LE.GetString(Get16BitStringSpan(position, length));
+        public string GetUTF16LittleEndian(long position, int length, bool terminated = true)
+            => EncodingHelper.UTF16LE.GetString(Get16BitStringSpan(position, length, terminated));
 
         /// <summary>
         /// Reads a little-endian UTF16 encoded <see cref="string"/> and throws if it is not the specified option.
@@ -2819,7 +2853,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF16LittleEndian(string option)
-            => AssertHelper.Assert(ReadUTF16LittleEndian(option.Length), "UTF16LE", option);
+            => AssertHelper.Assert(ReadUTF16LittleEndian(option.Length, false), "UTF16LE", option);
 
         /// <summary>
         /// Reads a little-endian UTF16 encoded <see cref="string"/> and throws if it is not one of the specified options.
@@ -2828,7 +2862,7 @@ namespace Edoke.IO
         /// <returns>A <see cref="string"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string AssertUTF16LittleEndian(ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadUTF16LittleEndian(options[0].Length), "UTF16LE", options);
+            => AssertHelper.Assert(ReadUTF16LittleEndian(options[0].Length, false), "UTF16LE", options);
 
         #endregion
 

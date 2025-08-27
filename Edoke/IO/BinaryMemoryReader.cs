@@ -68,11 +68,6 @@ namespace Edoke.IO
         private int BufferOffset;
 
         /// <summary>
-        /// Whether or not endianness is reversed.
-        /// </summary>
-        private bool IsEndiannessReversed;
-
-        /// <summary>
         /// The backing field for <see cref="BigEndian"/>.
         /// </summary>
         private bool BigEndianField;
@@ -100,9 +95,17 @@ namespace Edoke.IO
             get => BigEndianField;
             set
             {
-                IsEndiannessReversed = BigEndian != !BitConverter.IsLittleEndian;
                 BigEndianField = value;
             }
+        }
+
+        /// <summary>
+        /// Whether or not endianness is reversed.
+        /// </summary>
+        private bool IsEndiannessReversed
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => BigEndian != !BitConverter.IsLittleEndian;
         }
 
         /// <summary>

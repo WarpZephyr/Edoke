@@ -426,7 +426,7 @@ namespace Edoke.IO
         {
             int pos = BufferOffset;
             Position += values.Length;
-            values.CopyTo(Buffer[pos..values.Length]);
+            values.CopyTo(Buffer.Slice(pos, values.Length));
         }
 
         #endregion
@@ -1750,7 +1750,7 @@ namespace Edoke.IO
 
                 int pos = BufferOffset;
                 Position += length;
-                buffer.CopyTo(Buffer[pos..length]);
+                buffer.CopyTo(Buffer.Slice(pos, length));
                 return;
             }
 
@@ -1762,7 +1762,7 @@ namespace Edoke.IO
                     rental[i] = value;
                 }
 
-                WriteByteSpan(rental.AsSpan()[0..length]);
+                WriteByteSpan(rental.AsSpan()[..length]);
             }
             finally
             {
@@ -1829,7 +1829,7 @@ namespace Edoke.IO
             encoding.GetBytes(value, fixstr);
             int pos = BufferOffset;
             Position += fixstr.Length;
-            fixstr.CopyTo(Buffer[pos..length]);
+            fixstr.CopyTo(Buffer.Slice(pos, length));
         }
 
         #endregion

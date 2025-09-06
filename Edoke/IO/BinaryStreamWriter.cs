@@ -2303,7 +2303,7 @@ namespace Edoke.IO
         }
 
         /// <summary>
-        /// Write a null-terminated <see cref="string"/> in a fixed-size field.
+        /// Write a <see cref="string"/> in a fixed-size field.
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <param name="encoding">The encoding to use.</param>
@@ -2314,7 +2314,7 @@ namespace Edoke.IO
             for (int i = 0; i < length; i++)
                 fixstr[i] = padding;
 
-            encoding.GetBytes(value + '\0', fixstr);
+            encoding.GetBytes(value, fixstr);
             Writer.Write(fixstr);
         }
 

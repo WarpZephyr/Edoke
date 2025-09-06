@@ -2762,7 +2762,7 @@ namespace Edoke.IO
         {
             ValidateLength(length);
             var span = Buffer.Span;
-            span = span[BufferOffset..length];
+            span = span.Slice(BufferOffset, length);
             if (terminated)
             {
                 int strLen = StringLengthHelper.Strlen(span);
@@ -2796,7 +2796,7 @@ namespace Edoke.IO
         private ReadOnlySpan<byte> Get8BitStringSpan(int position, int length, bool terminated)
         {
             ValidateArguments(position, length);
-            var span = Buffer.Span[position..length];
+            var span = Buffer.Span.Slice(position, length);
             if (terminated)
             {
                 int strLen = StringLengthHelper.Strlen(span);
@@ -2836,7 +2836,7 @@ namespace Edoke.IO
         {
             ValidateLength(length);
             var span = Buffer.Span;
-            span = span[BufferOffset..length];
+            span = span.Slice(BufferOffset, length);
             if (terminated)
             {
                 int strLen = StringLengthHelper.WStrlen(span);
@@ -2870,7 +2870,7 @@ namespace Edoke.IO
         private ReadOnlySpan<byte> Get16BitStringSpan(int position, int length, bool terminated)
         {
             ValidateArguments(position, length);
-            var span = Buffer.Span[position..length];
+            var span = Buffer.Span.Slice(position, length);
             if (terminated)
             {
                 int strLen = StringLengthHelper.WStrlen(span);

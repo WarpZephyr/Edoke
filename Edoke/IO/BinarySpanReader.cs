@@ -2853,7 +2853,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertASCII(string option)
-            => AssertHelper.Assert(ReadASCII(option.Length), "ASCII", option);
+            => AssertHelper.Assert(ReadASCII(option.Length, false), "ASCII", option);
 
         /// <summary>
         /// Reads a ASCII encoded <see cref="string"/> and throws if it is not one of the specified options.
@@ -2861,7 +2861,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertASCII(ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadASCII(options[0].Length), "ASCII", options);
+            => AssertHelper.Assert(ReadASCII(options[0].Length, false), "ASCII", options);
 
         #endregion
 
@@ -2907,7 +2907,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF8(string option)
-            => AssertHelper.Assert(ReadUTF8(option.Length), "UTF8", option);
+            => AssertHelper.Assert(ReadUTF8(option.Length, false), "UTF8", option);
 
         /// <summary>
         /// Reads a UTF8 encoded <see cref="string"/> and throws if it is not one of the specified options.
@@ -2915,7 +2915,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF8(ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadUTF8(options[0].Length), "UTF8", options);
+            => AssertHelper.Assert(ReadUTF8(options[0].Length, false), "UTF8", options);
 
         #endregion
 
@@ -2961,7 +2961,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertShiftJIS(string option)
-            => AssertHelper.Assert(ReadShiftJIS(option.Length), "ShiftJIS", option);
+            => AssertHelper.Assert(ReadShiftJIS(option.Length, false), "ShiftJIS", option);
 
         /// <summary>
         /// Reads a ShiftJIS encoded <see cref="string"/> and throws if it is not one of the specified options.
@@ -2969,7 +2969,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertShiftJIS(ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadShiftJIS(options[0].Length), "ShiftJIS", options);
+            => AssertHelper.Assert(ReadShiftJIS(options[0].Length, false), "ShiftJIS", options);
 
         #endregion
 
@@ -3023,7 +3023,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF16(string option)
-            => AssertHelper.Assert(ReadUTF16(option.Length), "UTF16", option);
+            => AssertHelper.Assert(ReadUTF16(option.Length, false), "UTF16", option);
 
         /// <summary>
         /// Reads a UTF16 encoded <see cref="string"/> and throws if it is not one of the specified options.
@@ -3031,7 +3031,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF16(ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadUTF16(options[0].Length), "UTF16", options);
+            => AssertHelper.Assert(ReadUTF16(options[0].Length, false), "UTF16", options);
 
         #endregion
 
@@ -3077,7 +3077,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF16BigEndian(string option)
-            => AssertHelper.Assert(ReadUTF16BigEndian(option.Length), "UTF16BE", option);
+            => AssertHelper.Assert(ReadUTF16BigEndian(option.Length, false), "UTF16BE", option);
 
         /// <summary>
         /// Reads a big-endian UTF16 encoded <see cref="string"/> and throws if it is not one of the specified options.
@@ -3085,7 +3085,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF16BigEndian(ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadUTF16BigEndian(options[0].Length), "UTF16BE", options);
+            => AssertHelper.Assert(ReadUTF16BigEndian(options[0].Length, false), "UTF16BE", options);
 
         #endregion
 
@@ -3131,7 +3131,7 @@ namespace Edoke.IO
         /// <param name="option">The option to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF16LittleEndian(string option)
-            => AssertHelper.Assert(ReadUTF16LittleEndian(option.Length), "UTF16LE", option);
+            => AssertHelper.Assert(ReadUTF16LittleEndian(option.Length, false), "UTF16LE", option);
 
         /// <summary>
         /// Reads a little-endian UTF16 encoded <see cref="string"/> and throws if it is not one of the specified options.
@@ -3139,7 +3139,7 @@ namespace Edoke.IO
         /// <param name="options">The options to assert the <see cref="string"/> as.</param>
         /// <returns>A <see cref="string"/>.</returns>
         public string AssertUTF16LittleEndian(ReadOnlySpan<string> options)
-            => AssertHelper.Assert(ReadUTF16LittleEndian(options[0].Length), "UTF16LE", options);
+            => AssertHelper.Assert(ReadUTF16LittleEndian(options[0].Length, false), "UTF16LE", options);
 
         #endregion
     }

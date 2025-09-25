@@ -227,6 +227,19 @@ namespace Edoke.IO
         /// <summary>
         /// Creates a new <see cref="BinaryStreamWriter"/> from the specified options.
         /// </summary>
+        /// <param name="bytes">The bytes to write to.</param>
+        /// <param name="bigEndian">Whether or not to write in big endian.</param>
+        public BinaryStreamWriter(byte[] bytes, bool bigEndian) : this(new MemoryStream(bytes), bigEndian) { }
+
+        /// <summary>
+        /// Creates a new <see cref="BinaryStreamWriter"/> from the specified options.
+        /// </summary>
+        /// <param name="bytes">The bytes to write to.</param>
+        public BinaryStreamWriter(byte[] bytes) : this(new MemoryStream(bytes), !BitConverter.IsLittleEndian) { }
+
+        /// <summary>
+        /// Creates a new <see cref="BinaryStreamWriter"/> from the specified options.
+        /// </summary>
         /// <param name="path">The path to a file to write to.</param>
         /// <param name="bigEndian">Whether or not to write in big endian.</param>
         public BinaryStreamWriter(string path, bool bigEndian) : this(File.OpenWrite(path), bigEndian) { }
@@ -516,6 +529,16 @@ namespace Edoke.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteBytes(byte[] values)
             => InternalStream.Write(values, 0, values.Length);
+
+        /// <summary>
+        /// Writes an <see cref="Array"/> of <see cref="byte"/>.
+        /// </summary>
+        /// <param name="values">The values to write.</param>
+        /// <param name="offset">The starting position of the values to write.</param>
+        /// <param name="length">How many of the values to write from the starting position.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteBytes(byte[] values, int offset, int length)
+            => InternalStream.Write(values, offset, length);
 
         /// <summary>
         /// Writes an <see cref="IList{T}"/> of <see cref="byte"/>.
@@ -2303,18 +2326,45 @@ namespace Edoke.IO
         }
 
         /// <summary>
-        /// Write a <see cref="string"/> in a fixed-size field.
+        /// Write an optionally null-terminated 8-bit <see cref="string"/> in a fixed-size field.
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <param name="encoding">The encoding to use.</param>
         /// <param name="length">The byte length of the fixed-size field.</param>
-        private void WriteCharsFixed(string value, Encoding encoding, int length, byte padding)
+        /// <param name="terminate">Whether or not to add a null terminator.</param>
+        private void Write8BitFixedString(string value, Encoding encoding, int length, byte padding, bool terminate)
         {
             Span<byte> fixstr = stackalloc byte[length];
             for (int i = 0; i < length; i++)
                 fixstr[i] = padding;
 
-            encoding.GetBytes(value, fixstr);
+            int encodedCount = encoding.GetBytes(value, fixstr);
+            if (terminate && encodedCount < length)
+                fixstr[encodedCount] = 0;
+
+            Writer.Write(fixstr);
+        }
+
+        /// <summary>
+        /// Write an optionally null-terminated 8-bit <see cref="string"/> in a fixed-size field.
+        /// </summary>
+        /// <param name="value">The value to write.</param>
+        /// <param name="encoding">The encoding to use.</param>
+        /// <param name="length">The byte length of the fixed-size field.</param>
+        /// <param name="terminate">Whether or not to add a null terminator.</param>
+        private void Write16BitFixedString(string value, Encoding encoding, int length, byte padding, bool terminate)
+        {
+            Span<byte> fixstr = stackalloc byte[length];
+            for (int i = 0; i < length; i++)
+                fixstr[i] = padding;
+
+            int encodedCount = encoding.GetBytes(value, fixstr);
+            if (terminate && encodedCount < (length - 1))
+            {
+                fixstr[encodedCount] = 0;
+                fixstr[encodedCount + 1] = 0;
+            }
+
             Writer.Write(fixstr);
         }
 
@@ -2323,7 +2373,7 @@ namespace Edoke.IO
         #region String ASCII
 
         /// <summary>
-        /// Writes a ASCII encoded <see cref="string"/>.
+        /// Writes an ASCII encoded <see cref="string"/>.
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <param name="terminate">Whether or not to add a null terminator.</param>
@@ -2332,14 +2382,15 @@ namespace Edoke.IO
             => Write8BitString(value, Encoding.ASCII, terminate);
 
         /// <summary>
-        /// Writes a ASCII encoded <see cref="string"/> in a fixed-size field.
+        /// Writes an ASCII encoded <see cref="string"/> in a fixed-size field.
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <param name="length">The byte length of the fixed-size field.</param>
         /// <param name="padding">The padding value to use.</param>
+        /// <param name="terminate">Whether or not to add a null terminator.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteASCII(string value, int length, byte padding)
-            => WriteCharsFixed(value, Encoding.ASCII, length, padding);
+        public void WriteASCII(string value, int length, byte padding = 0, bool terminate = false)
+            => Write8BitFixedString(value, Encoding.ASCII, length, padding, terminate);
 
         #endregion
 
@@ -2360,9 +2411,10 @@ namespace Edoke.IO
         /// <param name="value">The value to write.</param>
         /// <param name="length">The byte length of the fixed-size field.</param>
         /// <param name="padding">The padding value to use.</param>
+        /// <param name="terminate">Whether or not to add a null terminator.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteUTF8(string value, int length, byte padding)
-            => WriteCharsFixed(value, Encoding.UTF8, length, padding);
+        public void WriteUTF8(string value, int length, byte padding = 0, bool terminate = false)
+            => Write8BitFixedString(value, Encoding.UTF8, length, padding, terminate);
 
         #endregion
 
@@ -2383,9 +2435,10 @@ namespace Edoke.IO
         /// <param name="value">The value to write.</param>
         /// <param name="length">The byte length of the fixed-size field.</param>
         /// <param name="padding">The padding value to use.</param>
+        /// <param name="terminate">Whether or not to add a null terminator.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteShiftJIS(string value, int length, byte padding)
-            => WriteCharsFixed(value, EncodingHelper.ShiftJIS, length, padding);
+        public void WriteShiftJIS(string value, int length, byte padding = 0, bool terminate = false)
+            => Write8BitFixedString(value, EncodingHelper.ShiftJIS, length, padding, terminate);
 
         #endregion
 
@@ -2406,9 +2459,10 @@ namespace Edoke.IO
         /// <param name="value">The value to write.</param>
         /// <param name="length">The byte length of the fixed-size field.</param>
         /// <param name="padding">The padding value to use.</param>
+        /// <param name="terminate">Whether or not to add a null terminator.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteUTF16(string value, int length, byte padding)
-            => WriteCharsFixed(value, BigEndian ? EncodingHelper.UTF16BE : EncodingHelper.UTF16LE, length, padding);
+        public void WriteUTF16(string value, int length, byte padding = 0, bool terminate = false)
+            => Write16BitFixedString(value, BigEndian ? EncodingHelper.UTF16BE : EncodingHelper.UTF16LE, length, padding, terminate);
 
         #endregion
 
@@ -2429,9 +2483,10 @@ namespace Edoke.IO
         /// <param name="value">The value to write.</param>
         /// <param name="length">The byte length of the fixed-size field.</param>
         /// <param name="padding">The padding value to use.</param>
+        /// <param name="terminate">Whether or not to add a null terminator.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteUTF16BigEndian(string value, int length, byte padding)
-            => WriteCharsFixed(value, EncodingHelper.UTF16BE, length, padding);
+        public void WriteUTF16BigEndian(string value, int length, byte padding = 0, bool terminate = false)
+            => Write16BitFixedString(value, EncodingHelper.UTF16BE, length, padding, terminate);
 
         #endregion
 
@@ -2452,9 +2507,10 @@ namespace Edoke.IO
         /// <param name="value">The value to write.</param>
         /// <param name="length">The byte length of the fixed-size field.</param>
         /// <param name="padding">The padding value to use.</param>
+        /// <param name="terminate">Whether or not to add a null terminator.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteUTF16LittleEndian(string value, int length, byte padding)
-            => WriteCharsFixed(value, EncodingHelper.UTF16LE, length, padding);
+        public void WriteUTF16LittleEndian(string value, int length, byte padding = 0, bool terminate = false)
+            => Write16BitFixedString(value, EncodingHelper.UTF16LE, length, padding, terminate);
 
         #endregion
 

@@ -93,14 +93,19 @@ namespace Edoke.IO
         private bool BigEndianField;
 
         /// <summary>
-        /// Whether or not this <see cref="BinaryStreamReader"/> has been disposed.
-        /// </summary>
-        private bool disposedValue;
-
-        /// <summary>
         /// The backing field for <see cref="VarintLong"/>.
         /// </summary>
         private bool VarintLongField;
+
+        /// <summary>
+        /// Whether or not to leave underlying <see cref="Stream"/> open.
+        /// </summary>
+        private bool LeaveOpen;
+
+        /// <summary>
+        /// Whether or not this <see cref="BinaryStreamReader"/> has been disposed.
+        /// </summary>
+        private bool disposedValue;
 
         /// <summary>
         /// The current size of varints.
@@ -207,6 +212,7 @@ namespace Edoke.IO
             InternalStream = stream;
             Steps = [];
             Reader = new BinaryReader(stream, Encoding.Default, leaveOpen);
+            LeaveOpen = leaveOpen;
         }
 
         /// <summary>
@@ -235,6 +241,7 @@ namespace Edoke.IO
             InternalStream = new MemoryStream(bytes, false);
             Steps = [];
             Reader = new BinaryReader(InternalStream, Encoding.Default, false);
+            LeaveOpen = false;
         }
 
         /// <summary>
@@ -2899,7 +2906,16 @@ namespace Edoke.IO
 
         public ValueTask DisposeAsync()
         {
-            var task = InternalStream.DisposeAsync();
+            ValueTask task;
+            if (LeaveOpen)
+            {
+                task = new ValueTask(Task.CompletedTask);
+            }
+            else
+            {
+                task = InternalStream.DisposeAsync();
+            }
+
             GC.SuppressFinalize(this);
             return task;
         }

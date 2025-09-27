@@ -90,14 +90,14 @@ namespace Edoke.IO
         private bool BigEndianField;
 
         /// <summary>
-        /// Whether or not this <see cref="BinaryStreamWriter"/> has been disposed.
-        /// </summary>
-        private bool disposedValue;
-
-        /// <summary>
         /// The backing field for <see cref="VarintLong"/>.
         /// </summary>
         private bool VarintLongField;
+
+        /// <summary>
+        /// Whether or not this <see cref="BinaryStreamWriter"/> has been disposed.
+        /// </summary>
+        private bool disposedValue;
 
         /// <summary>
         /// The current size of varints.

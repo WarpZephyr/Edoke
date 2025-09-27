@@ -37,9 +37,19 @@ namespace Edoke.IO
         private long _length;
 
         /// <summary>
+        /// Whether or not to leave the <see cref="BaseStream"/> open when disposing.
+        /// </summary>
+        private readonly bool _leaveOpen;
+
+        /// <summary>
+        /// Whether or not this <see cref="SubStream"/> has been disposed.
+        /// </summary>
+        private bool disposedValue;
+
+        /// <summary>
         /// The underlying <see cref="Stream"/>.
         /// </summary>
-        private readonly Stream BaseStream;
+        public Stream BaseStream { get; init; }
 
         #endregion
 
@@ -111,7 +121,7 @@ namespace Edoke.IO
         /// <param name="baseStream">The underlying <see cref="Stream"/>.</param>
         /// <param name="offset">The offset into the underlying <see cref="Stream"/> the <see cref="SubStream"/> begins at.</param>
         /// <param name="length">The length of the <see cref="SubStream"/>.</param>
-        public SubStream(Stream baseStream, long offset, long length)
+        public SubStream(Stream baseStream, long offset, long length, bool leaveOpen = false)
         {
             ArgumentNullException.ThrowIfNull(baseStream);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual((ulong)offset, (ulong)baseStream.Length, nameof(offset));
@@ -121,6 +131,7 @@ namespace Edoke.IO
 
             _offset = offset;
             _length = length;
+            _leaveOpen = leaveOpen;
         }
 
         #endregion
@@ -289,6 +300,28 @@ namespace Edoke.IO
             }
 
             _length = value;
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        protected override void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    if (!_leaveOpen)
+                    {
+                        BaseStream.Dispose();
+                    }
+                }
+
+                disposedValue = true;
+            }
+
+            base.Dispose(disposing);
         }
 
         #endregion

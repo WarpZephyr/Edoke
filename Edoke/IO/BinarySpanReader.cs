@@ -331,12 +331,13 @@ namespace Edoke.IO
         #region Read
 
         /// <summary>
-        /// Read the specified unmanaged type.
+        /// Read the specified unmanaged type.<br/>
+        /// Field endianness is not accounted for; Machine endianness is used.
         /// </summary>
         /// <typeparam name="T">The unmanaged type to read.</typeparam>
         /// <returns>The read value.</returns>
         /// <exception cref="InvalidOperationException">The read went beyond the specified span.</exception>
-        private unsafe T Read<T>() where T : unmanaged
+        public unsafe T Read<T>() where T : unmanaged
         {
             int size = sizeof(T);
             int endPosition = BufferOffset + size;
@@ -351,13 +352,14 @@ namespace Edoke.IO
         }
 
         /// <summary>
-        /// Read a <see cref="ReadOnlySpan{T}"/> of the specified unmanaged type.
+        /// Read a <see cref="ReadOnlySpan{T}"/> of the specified unmanaged type.<br/>
+        /// Field endianness is not accounted for; Machine endianness is used.
         /// </summary>
         /// <typeparam name="T">The unmanaged type to read.</typeparam>
         /// <param name="count">The amount to read.</param>
         /// <returns>The read values.</returns>
         /// <exception cref="InvalidOperationException">The read went beyond the specified span.</exception>
-        private unsafe ReadOnlySpan<T> ReadSpan<T>(int count) where T : unmanaged
+        public unsafe ReadOnlySpan<T> ReadSpan<T>(int count) where T : unmanaged
         {
             int size = sizeof(T) * count;
             int endPosition = BufferOffset + size;
@@ -372,13 +374,14 @@ namespace Edoke.IO
         }
 
         /// <summary>
-        /// Read the specified unmanaged type at the specified position.
+        /// Read the specified unmanaged type at the specified position.<br/>
+        /// Field endianness is not accounted for; Machine endianness is used.
         /// </summary>
         /// <typeparam name="T">The unmanaged type to read.</typeparam>
         /// <param name="position">The specified position.</param>
         /// <returns>The read value.</returns>
         /// <exception cref="InvalidOperationException">The read went beyond the specified span.</exception>
-        private readonly unsafe T Get<T>(int position) where T : unmanaged
+        public readonly unsafe T Get<T>(int position) where T : unmanaged
         {
             int size = sizeof(T);
             if ((position + size) > Length)
@@ -390,14 +393,15 @@ namespace Edoke.IO
         }
 
         /// <summary>
-        /// Get a <see cref="ReadOnlySpan{T}"/> of the specified unmanaged type at the specified position.
+        /// Get a <see cref="ReadOnlySpan{T}"/> of the specified unmanaged type at the specified position.<br/>
+        /// Field endianness is not accounted for; Machine endianness is used.
         /// </summary>
         /// <typeparam name="T">The unmanaged type to read.</typeparam>
         /// <param name="position">The specified position.</param>
         /// <param name="count">The amount to read.</param>
         /// <returns>The read values.</returns>
         /// <exception cref="InvalidOperationException">The read went beyond the specified span.</exception>
-        private readonly unsafe ReadOnlySpan<T> GetSpan<T>(int position, int count) where T : unmanaged
+        public readonly unsafe ReadOnlySpan<T> GetSpan<T>(int position, int count) where T : unmanaged
         {
             int size = sizeof(T) * count;
             if ((position + size) > Length)

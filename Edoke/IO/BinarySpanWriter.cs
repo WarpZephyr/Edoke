@@ -324,11 +324,12 @@ namespace Edoke.IO
         #region Write
 
         /// <summary>
-        /// Write an unmanaged value.
+        /// Write an unmanaged value.<br/>
+        /// Field endianness is not accounted for; Machine endianness is used.
         /// </summary>
         /// <typeparam name="T">The type of the value to write.</typeparam>
         /// <param name="value">The value to write.</param>
-        private unsafe void Write<T>(T value) where T : unmanaged
+        public unsafe void Write<T>(T value) where T : unmanaged
         {
             int pos = BufferOffset;
             Position += sizeof(T);
@@ -336,11 +337,12 @@ namespace Edoke.IO
         }
 
         /// <summary>
-        /// Write a <see cref="ReadOnlySpan{T}"/> of unmanaged values.
+        /// Write a <see cref="ReadOnlySpan{T}"/> of unmanaged values.<br/>
+        /// Field endianness is not accounted for; Machine endianness is used.
         /// </summary>
         /// <typeparam name="T">The type of the values to write.</typeparam>
         /// <param name="values">The values to write.</param>
-        private unsafe void Write<T>(ReadOnlySpan<T> values) where T : unmanaged
+        public unsafe void Write<T>(ReadOnlySpan<T> values) where T : unmanaged
         {
             int size = sizeof(T);
             int length = size * values.Length;

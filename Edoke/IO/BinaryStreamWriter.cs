@@ -7,6 +7,7 @@ using System.Drawing;
 using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Edoke.IO
@@ -452,6 +453,41 @@ namespace Edoke.IO
             }
 
             return position;
+        }
+
+        #endregion
+
+        #region Write
+
+        /// <summary>
+        /// Write an unmanaged value.<br/>
+        /// Field endianness is not accounted for; Machine endianness is used.
+        /// </summary>
+        /// <typeparam name="T">The type of the value to write.</typeparam>
+        /// <param name="value">The value to write.</param>
+        public unsafe void Write<T>(T value) where T : unmanaged
+        {
+            int size = sizeof(T);
+            Span<byte> buffer = stackalloc byte[size];
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref MemoryMarshal.GetReference(buffer), 0), value);
+            BaseStream.Write(buffer);
+        }
+
+        /// <summary>
+        /// Write a <see cref="ReadOnlySpan{T}"/> of unmanaged values.<br/>
+        /// Field endianness is not accounted for; Machine endianness is used.
+        /// </summary>
+        /// <typeparam name="T">The type of the values to write.</typeparam>
+        /// <param name="values">The values to write.</param>
+        public unsafe void Write<T>(ReadOnlySpan<T> values) where T : unmanaged
+        {
+            int size = sizeof(T);
+            int length = size * values.Length;
+
+            fixed (T* ptr = values)
+            {
+                WriteByteSpan(new ReadOnlySpan<byte>(ptr, length));
+            }
         }
 
         #endregion

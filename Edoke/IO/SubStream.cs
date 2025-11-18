@@ -219,7 +219,9 @@ namespace Edoke.IO
 
             ArgumentOutOfRangeException.ThrowIfNegative(count);
             SeekUntilPosition();
-            return BaseStream.Read(buffer, offset, Math.Min(count, (int)(_length - _position)));
+            int read = BaseStream.Read(buffer, offset, Math.Min(count, (int)(_length - _position)));
+            _position += read;
+            return read;
         }
 
         public override void Write(byte[] buffer, int offset, int count)
@@ -231,7 +233,9 @@ namespace Edoke.IO
 
             ArgumentOutOfRangeException.ThrowIfNegative(count);
             SeekUntilPosition();
-            BaseStream.Write(buffer, offset, Math.Min(count, (int)(_length - _position)));
+            int written = Math.Min(count, (int)(_length - _position));
+            BaseStream.Write(buffer, offset, written);
+            _position += written;
         }
 
         public override long Seek(long offset, SeekOrigin origin)

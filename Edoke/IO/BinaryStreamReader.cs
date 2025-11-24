@@ -357,23 +357,22 @@ namespace Edoke.IO
         /// <param name="alignment">The specified alignment.</param>
         /// <exception cref="ArgumentOutOfRangeException">An argument was out of range.</exception>
         /// <exception cref="InvalidOperationException">An argument or the next alignment position was out of range.</exception>
-        public void AlignFrom(int position, int alignment)
+        public void AlignRelative(long position, long alignment)
         {
-            if (position < 1 || position > Length)
+            if (position < 0 || position > Length)
             {
-                throw new ArgumentOutOfRangeException(nameof(position), $"Position value is out of range: {position} < {1} || {position} > {Length}");
+                throw new ArgumentOutOfRangeException(nameof(position), $"Position value is out of range: {position} < {0} || {position} > {Length}");
             }
 
-            if (alignment < 1)
+            if (alignment < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(alignment), $"Alignment value must be positive and non-zero: {alignment} < {1}");
+                throw new ArgumentOutOfRangeException(nameof(alignment), $"Alignment value must be positive and non-zero: {alignment} < {0}");
             }
 
-            int remainder = position % alignment;
-            if (remainder > 0)
+            long offset = (Position - position) % alignment;
+            if (offset != 0)
             {
-                int finalPosition = checked(position + (alignment - remainder));
-                Position = finalPosition;
+                Position += (alignment - offset);
             }
         }
 

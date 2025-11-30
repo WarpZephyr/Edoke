@@ -294,29 +294,10 @@ namespace Edoke.IO
         /// <param name="padding">The padding value to write.</param>
         /// <exception cref="ArgumentOutOfRangeException">An argument was out of range.</exception>
         /// <exception cref="InvalidOperationException">An argument or the next alignment position was out of range.</exception>
-        public void PadFrom(int position, int alignment, byte padding)
+        public void PadRelative(int position, int alignment, byte padding)
         {
-            long remainder = (BufferOffset - position) % alignment;
-            if (remainder > 0)
-            {
-                long count = alignment - remainder;
-                if (count == 1)
-                {
-                    WriteByte(padding);
-                }
-                else if (count >= PadBufferMinThreshold && count <= PadBufferMaxThreshold)
-                {
-                    WritePattern((int)count, padding);
-                }
-                else
-                {
-                    while (count > 0)
-                    {
-                        WriteByte(padding);
-                        count--;
-                    }
-                }
-            }
+            while ((BufferOffset - position) % alignment > 0)
+                WriteByte(padding);
         }
 
         #endregion

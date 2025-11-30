@@ -387,29 +387,10 @@ namespace Edoke.IO
         /// <summary>
         /// Writes the specified <see cref="byte"/> value until the stream position meets the specified alignment relative to the given offset.
         /// </summary>
-        public void PadFrom(long offset, int alignment, byte value)
+        public void PadRelative(long offset, int alignment, byte value)
         {
-            long remainder = (InternalStream.Position - offset) % alignment;
-            if (remainder > 0)
-            {
-                long count = alignment - remainder;
-                if (count == 1)
-                {
-                    InternalStream.WriteByte(value);
-                }
-                else if (count >= PadBufferMinThreshold && count <= PadBufferMaxThreshold)
-                {
-                    WritePattern((int)count, value);
-                }
-                else
-                {
-                    while (count > 0)
-                    {
-                        InternalStream.WriteByte(value);
-                        count--;
-                    }
-                }
-            }
+            while ((InternalStream.Position - offset) % alignment > 0)
+                WriteByte(value);
         }
 
         #endregion
